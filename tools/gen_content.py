@@ -255,7 +255,7 @@ for nm, g in groups:
 # ---- colours / paints --------------------------------------------------------------------------------------------
 C("const NamedColor COLOR_CHOICES[%d] = {" % len(tt.COLOR_CHOICES) + ", ".join(f"{{{cstr(n)}, {rgb(c)}}}" for n, c in tt.COLOR_CHOICES) + "};")
 H(f"#define N_COLORS {len(tt.COLOR_CHOICES)}")
-H("#define N_PAINTS (N_COLORS + 4)")
+
 
 # ---- home themes -------------------------------------------------------------------------------------------------
 order = list(tt.HOME_ORDER)
@@ -396,6 +396,21 @@ for k in skeys:
     C("  {" + ", ".join(cstr(x) if x else "0" for x in ls[:2]) + "},")
 C("};")
 H("extern const char *const STORY_LINES[5][2];")
+
+# ---- animated paints (paints.py ANIMATED_PAINTS): colour-picker order; index N_COLORS + k in loadouts --------------
+AP = list(tt.ANIMATED_PAINTS)
+assert [p.name for p in AP[:4]] == ["RGB", "ASTRAL", "PRISMATIC", "VOID"]      # 1.5 saves store these four at these indices
+C("const AnimPaint ANIM_PAINTS[%d] = {" % len(AP))
+for p in AP:
+    if p.name == "RGB":
+        uh, us = UID_IDX["rgb:hull"], UID_IDX["rgb:shell"]
+    else:
+        uh = us = UID_IDX["paint:" + p.name.lower()]
+    C(f"  {{{cstr(p.name)}, {rgb(p.sentinel)}, {uh}, {us}, {1 if p.px else 0}}},")
+C("};")
+H(f"#define N_ANIM_PAINTS {len(AP)}\n#define N_PAINTS (N_COLORS + N_ANIM_PAINTS)")
+H("extern const AnimPaint ANIM_PAINTS[N_ANIM_PAINTS];")
+H("enum { " + ", ".join(f"AP_{ident(p.name)}" for p in AP) + " };")
 H("#endif")
 
 with open(os.path.join(OUT, "content_enums.h"), "w") as f:

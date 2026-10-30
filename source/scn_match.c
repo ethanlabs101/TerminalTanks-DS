@@ -382,7 +382,7 @@ static void cycle_kit(Setup *s, bool tank, int d) {
 static int color_names(bool hull, int *out) {
     int n = 0;
     for (int i = 0; i < N_COLORS; i++) out[n++] = i;
-    for (int p = PAINT_RGB; p <= PAINT_VOID; p++) if (save_paint_ok(&g_app.save, p, hull)) out[n++] = p;
+    for (int p = PAINT_RGB; p < N_PAINTS; p++) if (save_paint_ok(&g_app.save, p, hull)) out[n++] = p;
     return n;
 }
 
@@ -617,9 +617,11 @@ static void setup_draw(Scene *sc, Term *t) {
             if (sel) snprintf(shown, sizeof shown, "\xE2\x97\x84 %s \xE2\x96\xBA", paint_name(cur));
             else snprintf(shown, sizeof shown, "%s", paint_name(cur));
             term_text(t, x + W - 2 - text_len(shown), ry, shown, live_color(paint_rgb(cur), tm), &bg);
-            if (sel)
-                ui_swatches(t, x + 2, ry + 1, cur < N_COLORS ? cur : -1, hull ? other : -1, save_paint_ok(sv, PAINT_RGB, hull), cur == PAINT_RGB, tm,
-                            save_paint_ok(sv, PAINT_ASTRAL, hull), cur == PAINT_ASTRAL, cur, save_paint_ok(sv, PAINT_PRISMATIC, hull), save_paint_ok(sv, PAINT_VOID, hull));
+            if (sel) {
+                int anim[N_ANIM_PAINTS], na = 0;
+                for (int p = PAINT_RGB; p < N_PAINTS; p++) if (save_paint_ok(sv, p, hull)) anim[na++] = p;
+                ui_swatches(t, x + 2, ry + 1, cur < N_COLORS ? cur : -1, hull ? other : -1, anim, na, cur, tm);
+            }
             ry += sel ? 4 : 1;
         } else if (name == SR_DIFF) {
             static const char *const DN[4] = {"EASY", "NORMAL", "HARD", "MASTER"};

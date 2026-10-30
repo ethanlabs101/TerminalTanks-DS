@@ -69,6 +69,8 @@ typedef struct {
 } MapDef;
 
 typedef struct { const char *name; RGB c; } NamedColor;
+/* an animated paint: stored as its reserved `sentinel` colour; unlocked by uid_hull / uid_shell; px = painted per pixel */
+typedef struct { const char *name; RGB sentinel; int16_t uid_hull, uid_shell; uint8_t px; } AnimPaint;
 
 typedef struct { double t; RGB c; } SkyStop;
 typedef struct {

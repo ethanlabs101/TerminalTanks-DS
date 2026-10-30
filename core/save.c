@@ -41,16 +41,12 @@ static void setbit(uint8_t *s, int i) { if (i >= 0) s[i >> 3] |= (uint8_t)(1u <<
 /* ------------------------------------------------------------------ paints */
 RGB paint_rgb(int p) {
     if (p >= 0 && p < N_COLORS) return COLOR_CHOICES[p].c;
-    if (p == PAINT_RGB) return (RGB){250, 3, 251};
-    if (p == PAINT_ASTRAL) return (RGB){251, 4, 250};
-    if (p == PAINT_PRISMATIC) return (RGB){252, 6, 247};
-    if (p == PAINT_VOID) return (RGB){247, 2, 252};
+    if (p >= N_COLORS && p < N_PAINTS) return ANIM_PAINTS[p - N_COLORS].sentinel;
     return COLOR_CHOICES[0].c;
 }
 const char *paint_name(int p) {
-    static const char *const extra[4] = {"RGB", "ASTRAL", "PRISMATIC", "VOID"};
     if (p >= 0 && p < N_COLORS) return COLOR_CHOICES[p].name;
-    if (p >= N_COLORS && p < N_PAINTS) return extra[p - N_COLORS];
+    if (p >= N_COLORS && p < N_PAINTS) return ANIM_PAINTS[p - N_COLORS].name;
     return "?";
 }
 
@@ -255,11 +251,9 @@ bool save_master_unlocked(const SaveData *s) { return save_is_unlocked(s, UID_MA
 
 bool save_paint_ok(const SaveData *s, int p, bool hull) {
     if (p < N_COLORS) return true;
-    if (p == PAINT_RGB) return save_is_unlocked(s, hull ? UID_RGB_HULL : UID_RGB_SHELL);
-    if (p == PAINT_ASTRAL) return save_is_unlocked(s, UID_PAINT_ASTRAL);
-    if (p == PAINT_PRISMATIC) return save_is_unlocked(s, UID_PAINT_PRISMATIC);
-    if (p == PAINT_VOID) return save_is_unlocked(s, UID_PAINT_VOID);
-    return false;
+    if (p >= N_PAINTS) return false;
+    const AnimPaint *ap = &ANIM_PAINTS[p - N_COLORS];
+    return save_is_unlocked(s, hull ? ap->uid_hull : ap->uid_shell);
 }
 
 bool save_missions_open(const SaveData *s) {

@@ -292,7 +292,9 @@ static Surf *item_preview(Shop *s, const ShopItem *it) {
     }
     if (!strcmp(kind, "tank")) design = design_by_key(key);
     else if (!strcmp(kind, "ammo")) ammo = ammo_by_key(key);
-    else if (!strcmp(kind, "paint")) hull = shot = !strcmp(key, "astral") ? COL_ASTRAL : !strcmp(key, "prismatic") ? COL_PRISMATIC : COL_VOID;
+    else if (!strcmp(kind, "paint")) {
+        for (int k = 1; k < N_ANIM_PAINTS; k++) if (!strcasecmp(ANIM_PAINTS[k].name, key)) hull = shot = ANIM_PAINTS[k].sentinel;
+    }
     else if (!strcmp(key, "hull")) hull = COL_RAINBOW;
     else if (!strcmp(key, "shell")) shot = COL_RAINBOW;
     preview_set_kit(&s->stage, design < 0 ? 0 : design, hull, ammo < 0 ? 0 : ammo, shot, 0);

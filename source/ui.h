@@ -22,8 +22,7 @@ void ui_panel(Term *t, int w, int h, const char *title, int y, int area_y, int a
 int  ui_draw_hp(Term *t, int x, int y, const Tank *tk, RGB bg, bool right);
 void ui_hearts(int hp, bool spaced, int total, char *out, int n);
 void ui_draw_bar(Term *t, int x, int y, int w, float frac);
-void ui_swatches(Term *t, int x, int y, int idx, int taken, bool rgb, bool rgb_sel, float time, bool astral_on, bool astral_sel,
-                 int cur_paint, bool prism_on, bool void_on);
+void ui_swatches(Term *t, int x, int y, int idx, int taken, const int *anim, int nanim, int cur, float time);
 void ui_wallet_text(const SaveData *s, char *out, int n);
 void ui_wallet(Term *t, const SaveData *s, float flash);
 void ui_prism_text(Term *t, int x, int y, const char *s, float time, float base, float spread, float sat, float val, const RGB *bg);

@@ -18,7 +18,7 @@
 #define N_DESIGNS_RT (N_DESIGNS + CUSTOM_TANK_MAX + CUSTOM_REMOTE_SLOTS)
 
 /* paints: 24 colours then the four animated ones */
-enum { PAINT_RGB = N_COLORS, PAINT_ASTRAL, PAINT_PRISMATIC, PAINT_VOID };
+enum { PAINT_RGB = N_COLORS, PAINT_ASTRAL, PAINT_PRISMATIC, PAINT_VOID };   /* then the 2.0 paints, N_COLORS + AP_* */
 RGB paint_rgb(int paint);
 const char *paint_name(int paint);
 

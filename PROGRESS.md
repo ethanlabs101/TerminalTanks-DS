@@ -1,5 +1,30 @@
 # PROGRESS — Terminal Tanks DS
 
+## 2.0 update (in progress, 2026-10-30)
+Goal: bring the DS port from PC 1.5.0 to PC 2.0.1 content, then bulletproof wireless, then music, then a 2.0 release.
+
+Done (all committed):
+- `reference/` is the PC 2.0.1 package; `tools/ttref.py` loads it flat. Generator handles the new content.
+- Core: 9 new ammo mechanics (seek, pierce, mirror, push, cdelay, burrow, slither, stars, volley), AI models its
+  ammo's g/wind/speed, Martyr 2.0 balance, Atomic Breath push. Parity: world+shot 300/300, AI 24/24, battles 6/6,
+  `run_battle_parity.py new` 10/10 (one match per new mechanic).
+- Saves: format 2. DS 1.5.0 saves (format 1) are remapped BY NAME (tools/gen_legacy.py -> core/gen/legacy_v1.c);
+  original kept as <profile>.v1.bak; unreadable saves kept as <profile>.bak before any write.
+  tests/save_migration/run.sh: 200/200 random 1.5.0 saves identical by name (negative control fails as it should).
+- Visuals: 10 skylines, Mariana jellyfish, new fx motes, 20 materials, 10 glows, 10 barrel styles, 12 tank effects,
+  10 shells, 10 trails, 10 impact bursts + signature blasts, 12 animated paints (generic ANIM_PAINTS registry,
+  compact swatches like 2.0's setup.py). All checked in the emulator (tests/visual/shoot.py).
+- Known emulator-only glitch: NooDS occasionally shows the top screen horizontally stretched for 1-2 frames during
+  PARADOX shots. Verified the game's canvas AND the top back buffer are correct in those frames -> display/emulator
+  side. Needs a look on real hardware.
+
+Next:
+1. 10 home-screen layers (abyss, shrine, holocity, hyper, kaiju, shrooms, wormsea, jadetemple, orrery, armada) — need a
+   C port of home_layers.py `_Px` (half-block 2 px/row canvas) — then check frame cost on the emulator.
+2. UI text changes from 2.0 (title tagline, RPS "YOU WIN!", shop panel, LINKS screen, mission 49 name is data).
+3. Version strings (Makefile GAME_SUB "v1.5.0 port"), docs, ROM for the user to test.
+4. Step 2: wireless reconnect/resync + stress tests (melonDS harness, tools/harness). Step 3: music.
+
 ## Status
 **Feature-complete port; first real-DS test done by the user.** Their report (2026-10-13): Master/Eternal home
 screens cluttered and broken-looking, Astral Rift map laggy, and after a power-off the game showed a white screen

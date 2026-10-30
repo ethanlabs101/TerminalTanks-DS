@@ -123,13 +123,22 @@ static void sw_cell(Term *t, int sx, int y, const char *label, RGB col, bool sel
     }
 }
 
-/* 24 colours as a 12x2 grid (+ animated RGB / ASTRAL / PRISM / VOID cells once unlocked) (l.7870) */
-void ui_swatches(Term *t, int x, int y, int idx, int taken, bool rgb, bool rgb_sel, float time, bool astral_on, bool astral_sel,
-                 int cur, bool prism_on, bool void_on) {
-    if (rgb) sw_cell(t, x, y, "RGB", rainbow(time), rgb_sel);
-    if (astral_on) sw_cell(t, x + 8, y, "ASTRAL", astral(time), astral_sel);
-    if (prism_on) sw_cell(t, x + 19, y, "PRISM", prismatic(time), cur == PAINT_PRISMATIC);
-    if (void_on) sw_cell(t, x + 29, y, "VOID", void_tint(time), cur == PAINT_VOID);
+/* 24 colours as a 12x2 grid, then one compact swatch for each animated paint you own; the selection is framed in
+ * white (setup.py draw_swatches). anim[] holds paint indices (N_COLORS + k), cur the selected paint. */
+void ui_swatches(Term *t, int x, int y, int idx, int taken, const int *anim, int nanim, int cur, float time) {
+    int step = nanim * 4 - 1 <= 36 ? 4 : 3;                    /* ten owned paints still fit the 36-column grid */
+    for (int i = 0; i < nanim; i++) {
+        int sx = x + i * step;
+        RGB c = live_color(ANIM_PAINTS[anim[i] - N_COLORS].sentinel, time + i * 0.37f);
+        if (anim[i] == cur) {
+            term_put(t, sx, y + 2, 0x2590, P_WHITE, &P_PANEL);
+            term_put(t, sx + 1, y + 2, 0x2588, c, &P_PANEL);
+            term_put(t, sx + 2, y + 2, 0x258C, P_WHITE, &P_PANEL);
+        } else {
+            term_text(t, sx, y + 2, "\xE2\x96\x88\xE2\x96\x88\xE2\x96\x88", c, &P_PANEL);
+        }
+    }
+    if (nanim && nanim * step + 8 <= 36) term_text(t, x + nanim * step, y + 2, "ANIMATED", P_MUTED, &P_PANEL);
     for (int k = 0; k < N_COLORS; k++) {
         int sx = x + (k % 12) * 3, sy = y + k / 12;
         RGB col = COLOR_CHOICES[k].c;

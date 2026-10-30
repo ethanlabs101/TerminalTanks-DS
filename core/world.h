@@ -32,8 +32,14 @@ static const RGB COL_ASTRAL = {251, 4, 250};
 static const RGB COL_PRISMATIC = {252, 6, 247};
 static const RGB COL_VOID = {247, 2, 252};
 static inline bool rgb_eq(RGB a, RGB b) { return a.r == b.r && a.g == b.g && a.b == b.b; }
-static inline bool rgb_is_live(RGB c) { return rgb_eq(c, COL_RAINBOW) || rgb_eq(c, COL_ASTRAL) || rgb_eq(c, COL_PRISMATIC) || rgb_eq(c, COL_VOID); }
-static inline bool rgb_is_pixel_paint(RGB c) { return rgb_eq(c, COL_ASTRAL) || rgb_eq(c, COL_PRISMATIC) || rgb_eq(c, COL_VOID); }
+/* which animated paint a stored colour is (-1: a plain colour); the registry is ANIM_PAINTS (paints.py ANIMATED_PAINTS) */
+static inline int anim_paint_of(RGB c) {
+    if (c.g > 16 || c.r < 240 || c.b < 240) return -1;      /* every sentinel is (24x, <=8, 24x): plain colours exit here */
+    for (int k = 0; k < N_ANIM_PAINTS; k++) if (rgb_eq(c, ANIM_PAINTS[k].sentinel)) return k;
+    return -1;
+}
+static inline bool rgb_is_live(RGB c) { return anim_paint_of(c) >= 0; }
+static inline bool rgb_is_pixel_paint(RGB c) { int k = anim_paint_of(c); return k >= 0 && ANIM_PAINTS[k].px; }
 
 enum { KIND_TANK = 0, KIND_UFO = 1 };
 

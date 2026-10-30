@@ -55,12 +55,31 @@ RGB rainbow(float t) { return chsv(roundf(frac1(t * 0.35f) * 36) / 36, 0.85f, 1.
 RGB astral(float t) { return cgradient(GAL_T, GAL_C, 6, roundf(frac1(t * 0.18f) * 48) / 48); }
 RGB prismatic(float t) { return chsv(roundf(frac1(t * 0.3f) * 36) / 36, 0.35f, 1.0f); }
 RGB void_tint(float t) { return cmix((RGB){90, 54, 190}, (RGB){176, 120, 255}, 0.5f + 0.5f * fsin(t * 2.4f)); }
+/* 2.0 paints (paints.py): tints for shells, trails and swatches; *_px paint a hull pixel by pixel */
+static float pmodf(float a, float b) { float r = fmodf(a, b); return r < 0 ? r + b : r; }
+static RGB step_mix(RGB a, RGB b, float v, float steps) { return cmix(a, b, roundf(v * steps) / steps); }
+static const float AUR_T[4] = {0, 0.35f, 0.7f, 1.0f};
+static const RGB AUR_C[4] = {{40, 240, 150}, {60, 200, 255}, {170, 90, 255}, {40, 240, 150}};
+static RGB anim_tint(int k, float t) {
+    switch (k) {
+    case AP_RGB: return rainbow(t);
+    case AP_ASTRAL: return astral(t);
+    case AP_PRISMATIC: return prismatic(t);
+    case AP_VOID: return void_tint(t);
+    case AP_MOLTEN: return step_mix((RGB){255, 84, 20}, (RGB){255, 196, 70}, 0.5f + 0.5f * fsin(t * 2.2f), 16);
+    case AP_CHROME: return step_mix((RGB){150, 160, 182}, (RGB){250, 252, 255}, 0.5f + 0.5f * fsin(t * 1.6f), 16);
+    case AP_AURORA: return cgradient(AUR_T, AUR_C, 4, roundf(frac1(t * 0.12f) * 36) / 36);
+    case AP_CIRCUIT: return step_mix((RGB){30, 170, 100}, (RGB){170, 255, 210}, 0.5f + 0.5f * fsin(t * 3.0f), 16);
+    case AP_OCEAN: return step_mix((RGB){20, 110, 190}, (RGB){120, 230, 255}, 0.5f + 0.5f * fsin(t * 1.8f), 16);
+    case AP_SYNTHWAVE: return step_mix((RGB){255, 60, 200}, (RGB){60, 230, 255}, 0.5f + 0.5f * fsin(t * 2.0f), 16);
+    case AP_TOXIC: return step_mix((RGB){90, 220, 40}, (RGB){200, 255, 90}, 0.5f + 0.5f * fsin(t * 2.8f), 16);
+    case AP_GILDED: return step_mix((RGB){200, 150, 50}, (RGB){255, 236, 150}, 0.5f + 0.5f * fsin(t * 1.7f), 16);
+    }
+    return WHITE;
+}
 RGB live_color(RGB c, float t) {
-    if (rgb_eq(c, COL_RAINBOW)) return rainbow(t);
-    if (rgb_eq(c, COL_ASTRAL)) return astral(t);
-    if (rgb_eq(c, COL_PRISMATIC)) return prismatic(t);
-    if (rgb_eq(c, COL_VOID)) return void_tint(t);
-    return c;
+    int k = anim_paint_of(c);
+    return k < 0 ? c : anim_tint(k, t);
 }
 static RGB galaxy_px(float t, float c, float r) {
     float v = (fsin(c * 0.55f + t * 1.1f) + fsin(r * 0.9f - t * 0.8f) + fsin((c + r) * 0.45f + t * 0.6f) + 3) / 6;
@@ -78,6 +97,94 @@ static RGB void_px(float t, float c, float r) {
     float v = (fsin(c * 0.7f + t * 1.3f) + fsin(r * 1.1f - t * 0.9f) + 2) / 4;
     return cmix((RGB){6, 3, 18}, (RGB){54, 30, 118}, v);
 }
+static RGB molten_px(float t, float c, float r) {
+    float crack = fabsf(fsin(c * 0.85f + 1.8f * fsin(r * 0.7f + t * 0.35f) + r * 0.45f));
+    if (crack < 0.2f) return step_mix((RGB){255, 96, 18}, (RGB){255, 226, 120}, (0.5f + 0.5f * fsin(t * 2.6f + c * 0.4f - r * 0.3f)) * (1 - crack * 5), 8);
+    if (crack < 0.32f) return (RGB){150, 40, 14};
+    return step_mix((RGB){34, 12, 10}, (RGB){70, 24, 16}, (fsin(c * 0.3f + r * 0.8f) + 1) / 2, 4);
+}
+static RGB chrome_px(float t, float c, float r) {
+    RGB base = step_mix((RGB){52, 58, 74}, (RGB){214, 222, 236}, clampf(r / 7.0f, 0, 1), 6);
+    float band = pmodf(c + r * 0.7f - t * 9.0f, 26);
+    if (band < 1.2f) return WHITE;
+    if (band < 2.6f) return cmix(base, WHITE, 0.55f);
+    if (((int)c + (int)r) % 9 == 0 && flick(t, (int)(c * 5 + r), 37) > 0.9f) return WHITE;
+    return base;
+}
+static RGB aurora_px(float t, float c, float r) {
+    float wave = fsin(c * 0.32f + t * 0.9f + 1.6f * fsin(r * 0.55f + t * 0.45f));
+    float glow = clampf((wave + 0.7f) * 0.7f, 0.3f, 1);
+    if (flick(t * 0.8f, (int)(c * 9 + r * 5), 41) > 0.96f) return (RGB){230, 240, 255};
+    RGB curtain = cgradient(AUR_T, AUR_C, 4, pmodf(c * 0.045f + r * 0.09f + t * 0.06f, 1.0f));
+    return step_mix((RGB){6, 12, 34}, curtain, glow, 8);
+}
+static RGB circuit_px(float t, float c, float r) {
+    int ic = (int)c, ir = (int)r;
+    bool trace = ir % 3 == 1 || (ic % 5 == 2 && ir % 3 != 0);
+    if (!trace) return (ic + ir) % 2 ? (RGB){10, 34, 26} : (RGB){14, 40, 30};
+    if (ic % 5 == 2 && ir % 3 == 1) return (RGB){200, 170, 90};          /* a solder pad where traces meet */
+    float pulse = pmodf(c + r * 2.0f - t * 14.0f, 17);
+    if (pulse < 1.6f) return (RGB){170, 255, 210};
+    if (pulse < 3.2f) return (RGB){70, 210, 140};
+    return (RGB){40, 110, 76};
+}
+static RGB ocean_px(float t, float c, float r) {
+    float depth = clampf(1 - r / 8.0f, 0, 1);
+    RGB base = step_mix((RGB){6, 40, 92}, (RGB){20, 110, 170}, 1 - depth, 5);
+    float a = fsin(c * 0.62f + t * 1.7f + fsin(r * 0.9f - t * 1.1f) * 1.4f), b = fsin(c * 0.41f - r * 0.73f - t * 1.3f);
+    float caustic = 1 - fabsf(a + b) * 0.8f;
+    if (caustic > 0.72f) return step_mix(base, (RGB){170, 245, 255}, fminf(1.0f, (caustic - 0.72f) * 3.6f), 6);
+    if (flick(t * 1.1f, (int)(c * 13 + r * 7), 43) > 0.97f) return (RGB){200, 240, 255};
+    return base;
+}
+static RGB synthwave_px(float t, float c, float r) {
+    int ir = (int)r;                                     /* rows count down from the top of the tank */
+    if (ir <= 2) {
+        if (ir == 2 && (int)(c + t * 4) % 7 < 2) return (RGB){255, 214, 120};
+        static const float ST[3] = {0, 0.5f, 1};
+        static const RGB SC[3] = {{80, 24, 140}, {190, 50, 200}, {255, 90, 150}};
+        return cgradient(ST, SC, 3, roundf(ir / 2.0f * 6) / 6);
+    }
+    if (ir == 3) return (RGB){70, 230, 255};
+    if (((int)c - 2) % 5 == 0 || ((int)(r - t * 2.5f) % 2 == 0 && (int)c % 2 == 0)) return (RGB){230, 50, 190};
+    return (RGB){14, 4, 26};
+}
+static RGB toxic_px(float t, float c, float r) {
+    uint32_t seed = ((uint32_t)(int)c * 2654435761u) & 0xFFFF;
+    float drip = 1.5f + (seed % 5) * 0.7f + 1.2f * fsin(t * (0.6f + (seed % 7) * 0.1f) + (float)seed);
+    if (r < drip) {
+        if (r > drip - 1) return (RGB){220, 255, 120};
+        return step_mix((RGB){60, 170, 30}, (RGB){190, 255, 80}, 0.6f + 0.4f * fsin(t * 3 + c * 0.7f - r), 6);
+    }
+    if (flick(t * 1.3f, (int)(c * 11 + r * 5), 47) > 0.95f) return (RGB){210, 255, 120};
+    return step_mix((RGB){10, 22, 10}, (RGB){24, 46, 18}, (fsin(c * 0.5f + r * 0.8f) + 1) / 2, 3);
+}
+static RGB gilded_px(float t, float c, float r) {
+    RGB base = step_mix((RGB){255, 222, 120}, (RGB){170, 110, 30}, clampf(r / 7.0f, 0, 1), 5);
+    float scroll = fsin(c * 0.9f + fsin(r * 1.3f) * 2.2f) * fcos(r * 0.8f - c * 0.3f);
+    if (fabsf(scroll) < 0.12f) base = cmix(base, (RGB){110, 66, 16}, 0.6f);          /* the engraving */
+    float band = pmodf(c - r * 0.5f - t * 7.0f, 30);
+    if (band < 1.4f) return (RGB){255, 252, 230};
+    if (band < 3.0f) return cmix(base, (RGB){255, 248, 210}, 0.5f);
+    return base;
+}
+static RGB anim_px(int k, float t, float c, float r) {
+    switch (k) {
+    case AP_ASTRAL: return galaxy_px(t, c, r);
+    case AP_PRISMATIC: return prismatic_px(t, c, r);
+    case AP_VOID: return void_px(t, c, r);
+    case AP_MOLTEN: return molten_px(t, c, r);
+    case AP_CHROME: return chrome_px(t, c, r);
+    case AP_AURORA: return aurora_px(t, c, r);
+    case AP_CIRCUIT: return circuit_px(t, c, r);
+    case AP_OCEAN: return ocean_px(t, c, r);
+    case AP_SYNTHWAVE: return synthwave_px(t, c, r);
+    case AP_TOXIC: return toxic_px(t, c, r);
+    case AP_GILDED: return gilded_px(t, c, r);
+    }
+    return WHITE;
+}
+
 static RGB paint_shade(RGB paint, RGB gb, char ch) {
     if (rgb_eq(paint, COL_VOID)) {
         switch (ch) {
@@ -482,7 +589,7 @@ void draw_tank(Surf *cv, float x, float y, int facing, float angle, RGB body, in
             if (ch == 'l' && !wreck) col = glow_color(d, body, t, cc);
             else if (is_material(ch) && !wreck) col = material(ch, body, d->accent, t, (float)cc, (float)r);
             else if (galaxy_on && strchr("thgkwd", ch)) {
-                RGB gb = rgb_eq(paint, COL_ASTRAL) ? galaxy_px(t, cc, r) : rgb_eq(paint, COL_PRISMATIC) ? prismatic_px(t, cc, r) : void_px(t, cc, r);
+                RGB gb = anim_px(anim_paint_of(paint), t, cc, r);
                 col = paint_shade(paint, gb, ch);
             } else {
                 switch (ch) {

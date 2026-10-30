@@ -1309,3 +1309,17 @@ const char *const STORY_LINES[5][2] = {
   {"You have ended a war that was not yours to inherit.", "There is another, older war waiting beneath your feet."},
   {"Ten prisons opened. Ten old sins answered for. And still, you stand.", "Steady hands. Stubborn aim. I knew them once. They run in the blood."},
 };
+const AnimPaint ANIM_PAINTS[12] = {
+  {"RGB", {250,3,251}, 501, 502, 0},
+  {"ASTRAL", {251,4,250}, 503, 503, 1},
+  {"PRISMATIC", {252,6,247}, 504, 504, 1},
+  {"VOID", {247,2,252}, 505, 505, 1},
+  {"MOLTEN", {246,3,253}, 506, 506, 1},
+  {"CHROME", {253,5,246}, 507, 507, 1},
+  {"AURORA", {245,4,249}, 508, 508, 1},
+  {"CIRCUIT", {249,6,245}, 509, 509, 1},
+  {"OCEAN", {244,5,250}, 510, 510, 1},
+  {"SYNTHWAVE", {250,7,244}, 511, 511, 1},
+  {"TOXIC", {243,6,251}, 512, 512, 1},
+  {"GILDED", {251,8,243}, 513, 513, 1},
+};
