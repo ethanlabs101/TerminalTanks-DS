@@ -18,12 +18,18 @@ Done (all committed):
   PARADOX shots. Verified the game's canvas AND the top back buffer are correct in those frames -> display/emulator
   side. Needs a look on real hardware.
 
+- 10 home-screen layers (source/home_layers2.inc): half-block _Px canvas, integer primitives, cached affine stamps
+  for static sections; 18-44 ms per redraw on the emulated ARM9 (Biolume Trench 58 ms). DS shortcuts listed in
+  docs/FEATURE_PARITY.md.
+- 2.0 UI: LINKS screen (2.0.1 list), RPS "YOU WIN!", shop panel without the balance, v2.0.1 strings, banner "v2.0 port".
+- STEP 1 DONE (2026-10-30, ROM md5 9e94e401...): all tests pass (parity 300/300, 24/24, 6/6, new 10/10; save migration
+  200/200). Handed to the user for a hardware test.
+
 Next:
-1. 10 home-screen layers (abyss, shrine, holocity, hyper, kaiju, shrooms, wormsea, jadetemple, orrery, armada) — need a
-   C port of home_layers.py `_Px` (half-block 2 px/row canvas) — then check frame cost on the emulator.
-2. UI text changes from 2.0 (title tagline, RPS "YOU WIN!", shop panel, LINKS screen, mission 49 name is data).
-3. Version strings (Makefile GAME_SUB "v1.5.0 port"), docs, ROM for the user to test.
-4. Step 2: wireless reconnect/resync + stress tests (melonDS harness, tools/harness). Step 3: music.
+1. User hardware test of step 1: save migration on their real card (backup first), new content, home screens,
+   the NooDS-only stretched frame during PARADOX shots, LINKS screen layout (not captured in the emulator).
+2. Step 2: wireless reconnect/resync + stress tests (melonDS two-console harness in tools/harness: needs building).
+3. Step 3: music on the DS. Step 4: polish + 2.0 release (DS repo, website DS page, itch).
 
 ## Status
 **Feature-complete port; first real-DS test done by the user.** Their report (2026-10-13): Master/Eternal home
