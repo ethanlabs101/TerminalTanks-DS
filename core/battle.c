@@ -725,6 +725,20 @@ static void impact_update(Battle *b, double sdt) {
                 }
             }
             b->guide_version++;
+        } else if (ev->pull < 0) {                     /* ATOMIC BREATH: the roar hurls tanks away */
+            double P = -ev->pull;
+            for (int i = 0; i < w->ntanks; i++) {
+                Tank *t = &w->tanks[i];
+                double dx = t->x - imp->x;
+                if (tank_alive(t) && t->kind != KIND_UFO && fabs(dx) <= P * 2.2) {
+                    double shove = (P * 2.2 - fabs(dx)) * 0.65;
+                    t->x = clampd(t->x + copysign(P < shove ? P : shove, dx != 0.0 ? dx : 1.0), 9, w->width - 10) + 0.0;
+                    double sup = (double)terrain_support(&w->terrain, t->x) + t->hover;
+                    if (sup > t->y) t->y = sup;
+                    if (t->hurt < 0.3) t->hurt = 0.3;
+                }
+            }
+            b->guide_version++;
         }
     }
     double end_t = (b->nflights || b->npending) ? 0.5 : 1.0;

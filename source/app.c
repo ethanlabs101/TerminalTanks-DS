@@ -150,6 +150,16 @@ static void load_active(void) {
 #ifdef TT_DEBUG_HOME   /* test builds only: everything unlocked, a fixed home screen */
     { char m[64]; int th; redeem_cheat(&g_app.save, "iamethanlabs101", m, sizeof m, &th); g_app.save.settings.home_mode = TT_DEBUG_HOME; }
 #endif
+#ifdef TT_DEBUG_TANK   /* test builds only: the player's loadout */
+    g_app.save.loadouts[0].tank = TT_DEBUG_TANK;
+#endif
+#ifdef TT_DEBUG_AMMO
+    g_app.save.loadouts[0].ammo = TT_DEBUG_AMMO;
+#endif
+#ifdef TT_DEBUG_PAINT
+    g_app.save.loadouts[0].tank_color = TT_DEBUG_PAINT;
+    g_app.save.loadouts[0].shot_color = TT_DEBUG_PAINT;
+#endif
     custom_register_all(&g_app.save);
     save_apply_settings_guard(&g_app.save);
     g_app.settings = g_app.save.settings;

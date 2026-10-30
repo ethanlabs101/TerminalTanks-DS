@@ -117,6 +117,18 @@ static RGB barrel_color(int style, RGB base, RGB accent, float t, float d, int l
     case 6: return ((int)(t * 18) + lane) % 3 == 0 ? accent : base;
     case 7: return cmix((RGB){20, 10, 40}, (RGB){170, 90, 255}, 0.5f + 0.5f * fsin(d * 1.3f - t * 6));
     case 8: return flick(t, (int)(d * 2), lane) > 0.8f ? (RGB){235, 245, 255} : cmix(base, accent, 0.5f);
+    /* 2.0 barrels (barrels.py) */
+    case BSTY_BIOLUME: { float k = fmaxf(0.0f, fsin(d * 1.6f - t * 7)); return cmix((RGB){16, 40, 70}, (RGB){140, 255, 240}, 0.15f + 0.85f * k * k * k); }
+    case BSTY_SPIRIT: { float k = clampf(d / 9.0f + 0.25f * fsin(t * 17 + d * 2.6f), 0, 1); return grad3((RGB){236, 232, 246}, (RGB){110, 170, 255}, (RGB){230, 248, 255}, 0.5f, k); }
+    case BSTY_HARDLIGHT: return (int)(d * 2 - t * 22) % 7 == 0 ? WHITE : (lane == 0 && d > 1.5f ? (RGB){200, 250, 255} : (RGB){90, 220, 255});
+    case BSTY_TESSERACT: return (int)(d * 2 + t * 6) % 4 ? chsv(0.72f + 0.08f * fsin(d * 0.9f - t * 3 + lane * 2), 0.5f, 1.0f) : WHITE;
+    case BSTY_ATOMIC: { float k = fmaxf(0.0f, fsin(d * 0.9f - t * 8 + lane)); return cmix((RGB){40, 80, 160}, (RGB){225, 245, 255}, k * k); }
+    case BSTY_FUNGAL: return cmix((RGB){206, 196, 176}, (RGB){120, 255, 190}, 0.5f + 0.5f * fsin(d * 1.3f - t * 2.4f));
+    case BSTY_MAW: return grad3((RGB){150, 104, 60}, (RGB){226, 120, 50}, (RGB){255, 214, 140}, 0.6f, clampf(d / 7.5f + 0.15f * fsin(t * 9 + d), 0, 1));
+    case BSTY_SERPENT: return (int)(d * 2) % 3 == 0 ? (RGB){244, 206, 110} : cmix((RGB){24, 112, 78}, (RGB){100, 220, 160}, 0.5f + 0.5f * fsin(d - t * 4));
+    case BSTY_ASTROLABE: return flick(t * 0.6f, (int)(d * 2), lane + 7) > 0.88f ? (RGB){255, 250, 220}
+                                : cmix((RGB){150, 110, 50}, (RGB){240, 206, 120}, 0.5f + 0.5f * fsin(d * 1.2f + t));
+    case BSTY_GHOSTFIRE: return cmix((RGB){34, 60, 56}, (RGB){130, 255, 180}, clampf(0.3f + 0.7f * fsin(d * 1.8f - t * 6 + lane * 1.7f), 0, 1));
     default: return base;
     }
 }
@@ -139,10 +151,43 @@ static RGB material(char ch, RGB body, RGB a, float t, float c, float r) {
     case 'm': return cmix((RGB){20, 110, 150}, (RGB){150, 255, 240}, 0.5f + 0.5f * fsin(t * 3.5f - c * 0.9f + r * 0.6f));
     case 'z': { float k = fmaxf(0.0f, 1 - fabsf((c + r * 2) - (fmodf(t * 8, 24) - 6)) / 2.2f);
                 return cmix(cmix((RGB){120, 70, 30}, (RGB){232, 172, 72}, 0.5f + 0.5f * fsin(t * 1.5f + c)), (RGB){255, 250, 222}, k); }
+    /* 2.0 materials (materials.py) */
+    case 'J': return cmix((RGB){8, 20, 46}, (RGB){34, 78, 126}, 0.5f + 0.5f * fsin(t * 1.3f + c * 0.7f + r * 1.1f) * fsin(t * 0.7f - c * 0.4f));
+    case 'U': if (flick(t * 0.5f, (int)(c * 3 + r), 29) > 0.96f) return (RGB){240, 255, 255};
+              return cmix((RGB){18, 80, 130}, (RGB){140, 255, 236}, 0.5f + 0.5f * fsin(t * 4 - c * 0.9f + r));
+    case 'F': { float k = clampf(0.55f + 0.45f * fsin(t * 19 + c * 2.1f + r * 1.3f) * fsin(t * 7 + c), 0, 1);
+                return grad3((RGB){40, 60, 200}, (RGB){90, 180, 255}, (RGB){236, 250, 255}, 0.5f, k); }
+    case 'X': return cmix((RGB){232, 228, 244}, (RGB){255, 214, 140}, 0.7f * fmaxf(0.0f, 1 - fabsf((c + r * 1.5f) - (fmodf(t * 5, 20) - 4)) / 2.5f));
+    case 'H': if (flick(t * 0.6f, (int)c, (int)r + 40) > 0.95f) return (RGB){255, 60, 200};
+              if (((int)(t * 14) + (int)r) % 6 == 0) return (RGB){210, 255, 255};
+              return cmix((RGB){18, 50, 100}, (RGB){90, 230, 255}, 0.55f + 0.3f * fsin(t * 6 + r * 2 + c * 0.3f));
+    case 'K': return cmix((RGB){150, 162, 184}, WHITE, fmaxf(0.0f, 1 - fabsf((c - r) - (fmodf(t * 9, 22) - 5)) / 1.8f));
+    case 'Q': { float k = fmaxf(0.0f, 1 - fabsf((c + r) - (fmodf(t * 7, 20) - 4)) / 2.0f);
+                return cmix(chsv(0.74f + 0.08f * fsin(t * 2 + c * 0.5f), 0.45f, 1.0f), WHITE, k); }
+    case 'Z': if (flick(t * 0.4f, (int)(c * 3 + r), 23) > 0.9f) return (RGB){240, 236, 255};
+              return cmix((RGB){6, 4, 20}, (RGB){52, 22, 112}, 0.5f + 0.5f * fsin(t * 1.7f + c * 0.6f - r));
+    case 'R': { int k = ((int)c + ((int)r % 2)) % 2; return cmix((RGB){26, 40, 34}, (RGB){78, 108, 90}, 0.25f + 0.3f * k + 0.15f * fsin(t * 1.2f + c)); }
+    case 'N': { float k = fmaxf(0.0f, 1 - fabsf(c - (fmodf(t * 6, 16) - 3)) / 2.5f); return cmix((RGB){40, 90, 170}, (RGB){220, 244, 255}, 0.35f + 0.65f * k); }
+    case 'M': if (((int)c * 3 + (int)r * 5) % 7 == 0) return cmix((RGB){255, 240, 200}, (RGB){170, 255, 220}, 0.5f + 0.5f * fsin(t * 2.5f + c));
+              return cmix((RGB){140, 26, 56}, (RGB){206, 64, 116}, 0.5f + 0.5f * fsin(t * 1.5f + c * 0.6f));
+    case 'S': return cmix((RGB){50, 170, 130}, (RGB){210, 255, 226}, 0.5f + 0.5f * fsin(t * 3.3f + c * 1.7f + r));
+    case 'W': return cmix((RGB){112, 74, 38}, (RGB){218, 174, 104}, 0.5f + 0.5f * fsin(c * 1.6f - t * 3 + r * 0.4f));
+    case 'O': return grad3((RGB){90, 20, 10}, (RGB){240, 110, 40}, (RGB){255, 222, 150}, 0.6f, 0.5f + 0.5f * fsin(t * 8 + c * 1.3f));
+    case 'E': if (fabsf(fsin(c * 1.3f + r * 2.1f + t * 0.6f)) < 0.14f) return (RGB){250, 214, 120};
+              return cmix((RGB){18, 104, 76}, (RGB){96, 214, 156}, 0.5f + 0.5f * fsin(t * 1.1f + c * 0.5f + r));
+    case 'P': if (((int)c + (int)r) % 5 == 0) return cmix((RGB){220, 50, 50}, (RGB){255, 150, 90}, 0.5f + 0.5f * fsin(t * 3 + c));
+              return chsv(0.40f + 0.10f * fsin(t * 1.8f + c * 0.5f + r * 0.8f), 0.75f, 0.95f);
+    case 'C': if (((int)c * 7 + (int)r * 3) % 9 == 0) return cmix((RGB){140, 150, 220}, (RGB){255, 250, 220}, 0.5f + 0.5f * fsin(t * 6 + c * 2));
+              return (int)c % 4 == 0 ? (RGB){36, 52, 120} : cmix((RGB){12, 18, 56}, (RGB){24, 34, 90}, 0.5f + 0.5f * fsin(t + c * 0.4f));
+    case 'G': return cmix((RGB){176, 136, 56}, (RGB){255, 240, 180}, 0.5f + 0.5f * fsin(t * 5 + c * 1.1f));
+    case 'B': { float k = fmaxf(0.0f, 1 - fabsf(c - (fmodf(t * 4 + r * 3, 18) - 3)) / 3.0f);
+                return cmix(cmix((RGB){24, 44, 46}, (RGB){50, 86, 82}, 0.5f + 0.5f * fsin(c * 2.2f + r)), (RGB){120, 255, 170}, 0.45f * k); }
+    case 'L': { float k = clampf(0.5f + 0.5f * fsin(t * 17 + c * 2.3f + r) * fsin(t * 6 + c * 0.7f), 0, 1);
+                return grad3((RGB){20, 90, 50}, (RGB){90, 255, 150}, (RGB){224, 255, 234}, 0.5f, k); }
     }
     return body;
 }
-static bool is_material(char ch) { return ch && strchr("pqfevbyorsnmz", ch) != NULL; }
+static bool is_material(char ch) { return ch && strchr("pqfevbyorsnmzJUFXHKQZRNMSWOEPCGBL", ch) != NULL; }
 
 static RGB glow_color(const TankDesign *d, RGB body, float t, int idx) {
     RGB a = d->accent;
@@ -166,8 +211,135 @@ static RGB glow_color(const TankDesign *d, RGB body, float t, int idx) {
     case GLOW_TOXIC: return cmix((RGB){20, 70, 20}, (RGB){170, 255, 60}, 0.5f + 0.5f * fsin(t * 5 + idx * 1.1f));
     case GLOW_NEON: return ((int)(t * 4) + idx) % 2 == 0 ? (RGB){255, 70, 220} : (RGB){60, 240, 255};
     case GLOW_GOLD: { float k = fmaxf(0.0f, 1 - fabsf(idx - (fmodf(t * 6, 15) - 2)) / 2.5f); return cmix((RGB){190, 140, 40}, (RGB){255, 244, 170}, k); }
+    /* 2.0 glows (tanks.py _glow_color) */
+    case GLOW_BIOLUME: { float k = fmaxf(0.0f, fsin(t * 3 - idx * 0.8f)); return cmix((RGB){20, 90, 140}, (RGB){160, 255, 240}, k * k); }
+    case GLOW_FOXFIRE: return grad3((RGB){50, 70, 210}, (RGB){110, 190, 255}, (RGB){240, 252, 255}, 0.5f, 0.5f + 0.5f * fsin(t * 15 + idx * 1.9f));
+    case GLOW_HOLOGLITCH: return flick(t, idx, 31) > 0.9f ? (RGB){255, 70, 210} : cmix((RGB){40, 140, 220}, (RGB){200, 255, 255}, 0.5f + 0.5f * fsin(t * 9 + idx));
+    case GLOW_PHASE: return chsv(0.70f + 0.12f * fsin(t * 2.2f + idx * 0.6f), 0.55f, 1.0f);
+    case GLOW_ATOMIC: { float k = 0.5f + 0.5f * fsin(t * 2.6f); return cmix((RGB){50, 110, 210}, (RGB){235, 250, 255}, k * k * k); }
+    case GLOW_SPORE: return cmix((RGB){40, 150, 110}, (RGB){190, 255, 220}, 0.5f + 0.5f * fsin(t * 2 + idx * 1.4f));
+    case GLOW_MAW: return grad3((RGB){120, 30, 10}, (RGB){255, 120, 40}, (RGB){255, 230, 160}, 0.6f, 0.5f + 0.5f * fsin(t * 7 + idx * 1.1f));
+    case GLOW_JADE: { float k = fmaxf(0.0f, 1 - fabsf(idx - (fmodf(t * 5, 15) - 2)) / 2.5f); return cmix((RGB){40, 170, 110}, (RGB){255, 226, 130}, k); }
+    case GLOW_ZODIAC: return ((int)(t * 2) + idx) % 5 == 0 ? (RGB){255, 250, 220} : cmix((RGB){90, 110, 220}, (RGB){255, 214, 130}, 0.5f + 0.5f * fsin(t * 2 + idx));
+    case GLOW_GHOST: return cmix((RGB){30, 90, 60}, (RGB){160, 255, 190}, 0.5f + 0.5f * fsin(t * 5 + idx * 0.9f) * fsin(t * 2.3f));
     }
     return cmix(body, WHITE, 0.6f);
+}
+
+/* 2.0 tank effects drawn over the hull (tanks.py _draw_ambient): lure, tails, foxfire, scanlines, hypercube,
+ * constellation, sails. The particle ones (radiation, spores, sand, feathers, ghostfire) live in particles.c. */
+static void ambient_line(Surf *cv, float x0, float y0, float x1, float y1, RGB col, float a) {
+    int n = (int)fmaxf(fabsf(x1 - x0), fabsf(y1 - y0)) + 1;
+    for (int j = 0; j <= n; j++) cblendf(cv, x0 + (x1 - x0) * j / n, y0 + (y1 - y0) * j / n, col, a);
+}
+static void ambient_overlay_2(Surf *cv, float x, float y, int scale, uint64_t k, float t) {
+    if (k & (1ull << AMB_LURE)) {                       /* the angler's lure: a bending stalk and a glowing bulb */
+        float sw = fsin(t * 1.3f) * 2.6f;
+        for (int i = 0; i < 10; i++) {
+            float f = i / 9.0f;
+            cblendf(cv, x + sw * f * f * scale, y + (6 + 4.5f * f) * scale, (RGB){40, 90, 120}, 0.75f);
+        }
+        float bx = x + sw * scale, by = y + 10.5f * scale, glow = 0.6f + 0.4f * fsin(t * 4.2f);
+        for (int dx = -3; dx <= 3; dx++)
+            for (int dy = -3; dy <= 3; dy++) {
+                float d = sqrtf((float)(dx * dx + dy * dy));
+                if (d <= 3.2f) cblendf(cv, bx + dx, by + dy, d < 1.2f ? (RGB){150, 255, 240} : (RGB){60, 200, 220}, (1 - d / 3.4f) * glow);
+            }
+        cplotf(cv, bx, by, (RGB){240, 255, 255});
+    }
+    if (k & (1ull << AMB_TAILS)) {                      /* nine spectral tails fanning up behind the fox */
+        int n = 12 * scale;
+        for (int i = 0; i < 9; i++) {
+            float base_a = (28 + i * 15.5f) * (TAU_F / 360);
+            for (int q = 2; q <= n; q++) {
+                float f = (float)q / n;
+                float a = base_a + 0.35f * fsin(t * 2.2f + i * 0.7f + f * 2.5f) * f;
+                float tx = x + fcos(a) * f * 11 * scale, ty = y + 3 * scale + fsin(a) * f * 9.5f * scale;
+                cblendf(cv, tx, ty, grad3((RGB){236, 232, 246}, (RGB){120, 180, 255}, (RGB){235, 250, 255}, 0.55f, f), 0.7f * (1 - f * 0.45f));
+                if (f > 0.7f) cblendf(cv, tx + fcos(a + 1.6f), ty + fsin(a + 1.6f), (RGB){120, 190, 255}, 0.35f);
+            }
+        }
+    }
+    if (k & (1ull << AMB_FOXFIRE))                       /* three wisps of blue flame circling */
+        for (int i = 0; i < 3; i++) {
+            float ang = t * 1.8f + i * TAU_F / 3;
+            float fx = x + fcos(ang) * 8.5f * scale, fy = y + 4 * scale + fsin(ang) * 2.6f * scale, fl = 0.6f + 0.4f * flick(t, i, 3);
+            cblendf(cv, fx, fy, (RGB){240, 252, 255}, 0.95f * fl);
+            cblendf(cv, fx, fy + 1, (RGB){110, 190, 255}, 0.8f * fl);
+            cblendf(cv, fx, fy + 2, (RGB){60, 90, 230}, 0.5f * fl);
+            cblendf(cv, fx - 1, fy, (RGB){90, 160, 255}, 0.4f * fl);
+            cblendf(cv, fx + 1, fy, (RGB){90, 160, 255}, 0.4f * fl);
+        }
+    if (k & (1ull << AMB_SCANLINES)) {                  /* hologram scan bars rising, and the odd torn slice */
+        for (int q = 0; q < 2; q++) {
+            float sy = y + fmodf(t * 6 + q * 4, 9) * scale;
+            for (int dx = -6 * scale; dx <= 6 * scale; dx++) cblendf(cv, x + dx, sy, (RGB){120, 240, 255}, 0.22f);
+        }
+        if (flick(t * 0.5f, 7, 11) > 0.8f) {
+            float gy = y + (int)(flick(t, 3, 5) * 6) * scale;
+            for (int dx = -5 * scale; dx <= 5 * scale; dx += 2) cblendf(cv, x + dx + 2, gy, (RGB){255, 70, 210}, 0.5f);
+        }
+    }
+    if (k & (1ull << AMB_HYPERCUBE)) {                  /* a rotating tesseract: two wire cubes, joined corner to corner */
+        float cx = x, cy = y + 4.5f * scale, ay = t * 0.9f, ax = t * 0.55f, px[2][8], py[2][8];
+        static const float SZ[2] = {7.5f, 4.0f};
+        for (int ring = 0; ring < 2; ring++) {
+            float s_ = SZ[ring], ang = ay * (s_ > 5 ? 1 : -1.6f);
+            int v = 0;
+            for (int vx = -1; vx <= 1; vx += 2)
+                for (int vy = -1; vy <= 1; vy += 2)
+                    for (int vz = -1; vz <= 1; vz += 2) {
+                        float X = vx * s_ * 0.5f, Y = vy * s_ * 0.5f, Z = vz * s_ * 0.5f;
+                        float X2 = X * fcos(ang) - Z * fsin(ang), Z2 = X * fsin(ang) + Z * fcos(ang);
+                        float Y2 = Y * fcos(ax) - Z2 * fsin(ax);
+                        px[ring][v] = cx + X2 * scale * 1.5f;
+                        py[ring][v] = cy + Y2 * scale * 1.2f;
+                        v++;
+                    }
+        }
+        for (int i = 0; i < 8; i++)
+            for (int j = i + 1; j < 8; j++)
+                if (__builtin_popcount((unsigned)(i ^ j)) == 1) {
+                    ambient_line(cv, px[0][i], py[0][i], px[0][j], py[0][j], (RGB){200, 160, 255}, 0.55f);
+                    ambient_line(cv, px[1][i], py[1][i], px[1][j], py[1][j], WHITE, 0.45f);
+                }
+        for (int i = 0; i < 8; i++) ambient_line(cv, px[0][i], py[0][i], px[1][i], py[1][i], (RGB){140, 100, 240}, 0.3f);
+    }
+    if (k & (1ull << AMB_CONSTELLATION)) {              /* twelve zodiac stars turning round the astrolabe, joined by gold lines */
+        float qx = 0, qy = 0;
+        for (int i = 0; i < 13; i++) {
+            float ang = t * 0.4f + (i % 12) * TAU_F / 12, rr = (9.5f + 1.2f * fsin(i * 2.7f)) * scale;
+            float sx = x + fcos(ang) * rr, sy = y + 4 * scale + fsin(ang) * rr * 0.42f;
+            if (i > 0)
+                for (int j = 1; j < 6; j++) cblendf(cv, qx + (sx - qx) * j / 6, qy + (sy - qy) * j / 6, (RGB){200, 170, 90}, 0.25f);
+            if (i < 12) {
+                float tw = 0.5f + 0.5f * fsin(t * 4 + i * 1.3f);
+                cblendf(cv, sx, sy, (RGB){255, 250, 220}, 0.6f + 0.4f * tw);
+                cblendf(cv, sx + 1, sy, (RGB){255, 214, 130}, 0.3f * tw); cblendf(cv, sx - 1, sy, (RGB){255, 214, 130}, 0.3f * tw);
+                cblendf(cv, sx, sy + 1, (RGB){255, 214, 130}, 0.3f * tw); cblendf(cv, sx, sy - 1, (RGB){255, 214, 130}, 0.3f * tw);
+            }
+            qx = sx; qy = sy;
+        }
+    }
+    if (k & (1ull << AMB_SAILS)) {                      /* tattered spectral sails billowing on the three masts */
+        static const float MM[3] = {-3, 0, 3}, HH[3] = {3.5f, 4.5f, 3.5f};
+        for (int m = 0; m < 3; m++) {
+            float h_ = HH[m], top = y + (6 + h_) * scale;
+            for (int q = 0; q <= (int)(h_ * scale); q++) cblendf(cv, x + MM[m] * scale, y + 6 * scale + q, (RGB){60, 100, 96}, 0.9f);
+            int rows = (int)(h_ * scale);
+            for (int row = 1; row < rows; row++) {
+                float f = row / fmaxf(1.0f, h_ * scale);
+                float belly = fsin(f * PI_F) * (0.9f + 0.5f * fsin(t * 2 + MM[m])) * scale;
+                int w_ = (int)((1.8f - f * 0.6f) * scale);
+                if (w_ < 1) w_ = 1;
+                for (int dx = -w_; dx <= w_; dx++) {
+                    if (((dx * 7 + row * 3 + (int)(t * 3)) % 9 + 9) % 9 == 0) continue;     /* holes in the tattered canvas */
+                    bool edge = abs(dx) == w_ || row == 1;
+                    cblendf(cv, x + MM[m] * scale + dx + belly, top - row, (RGB){190, 255, 214}, edge ? 0.5f : 0.16f);
+                }
+            }
+        }
+    }
 }
 
 static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDesign *d, float t) {
@@ -237,6 +409,7 @@ static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDes
             float kk = frac1(t * 0.8f + i / 6.0f), ang = i * 1.05f + t * 0.7f;
             cblendf(cv, x + fcos(ang) * (1 - kk) * 9 * scale, y + 3 * scale + fsin(ang) * (1 - kk) * 5 * scale, (RGB){170, 110, 255}, 0.7f * kk);
         }
+    ambient_overlay_2(cv, x, y, scale, k, t);
 }
 
 void draw_tank(Surf *cv, float x, float y, int facing, float angle, RGB body, int scale, float flash, bool wreck, float recoil,
@@ -408,6 +581,103 @@ void draw_projectile(Surf *cv, float x, float y, float vx, float vy, RGB accent,
     float ux = vx / sp, uy = vy / sp;
     static const int NB[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     switch (ammo->proj) {
+    /* 2.0 shells (projectiles.py) */
+    case PROJ_LURE: {                                    /* ANGLER'S LURE: a glowing bulb on a short trailing filament */
+        float glow = 0.6f + 0.4f * fsin(t * 9);
+        for (int dx = -3; dx <= 3; dx++)
+            for (int dy = -3; dy <= 3; dy++) {
+                float d = fsqrt((float)(dx * dx + dy * dy));
+                if (d <= 3.0f) cblendf(cv, x + dx, y + dy, d < 1.3f ? (RGB){150, 255, 236} : (RGB){40, 170, 210}, (1 - d / 3.2f) * glow);
+            }
+        for (int q = 1; q < 6; q++) cblendf(cv, x - ux * q + fsin(t * 6 + q) * 0.6f, y - uy * q, (RGB){60, 140, 170}, 0.7f - q * 0.1f);
+        cplotf(cv, x, y, (RGB){240, 255, 255});
+        break;
+    }
+    case PROJ_FOXFIRE:                                   /* a blue flame with a white heart, licking backwards */
+        for (int k = 0; k < 7; k++) {
+            float fl = flick(t, k, 41);
+            cblendf(cv, x - ux * k * 0.9f + (fl - 0.5f) * 1.6f, y - uy * k * 0.9f + k * 0.25f,
+                    grad3((RGB){236, 250, 255}, (RGB){110, 180, 255}, (RGB){50, 70, 220}, 0.5f, k / 6.0f), 0.95f - k * 0.11f);
+        }
+        cplotf(cv, x, y, WHITE);
+        break;
+    case PROJ_LANCE:                                     /* HARDLIGHT LANCE: a long rod of light with a white tip */
+        for (int i = 0; i < 12; i++) {
+            RGB col = i < 2 ? WHITE : cmix((RGB){150, 250, 255}, (RGB){40, 140, 255}, i / 12.0f);
+            cblendf(cv, x - ux * i, y - uy * i, col, 1.0f - i / 14.0f);
+            cblendf(cv, x - ux * i - uy * 0.9f, y - uy * i + ux * 0.9f, (RGB){90, 220, 255}, 0.25f * (1 - i / 12.0f));
+        }
+        break;
+    case PROJ_PARADOX: {                                 /* two shells half a step out of phase, swapping places */
+        float ph = fsin(t * 13);
+        for (int sg = 1; sg >= -1; sg -= 2) {
+            RGB col = sg > 0 ? (RGB){210, 170, 255} : WHITE;
+            float ox = -uy * 1.6f * ph * sg, oy = ux * 1.6f * ph * sg;
+            cblendf(cv, x + ox, y + oy, col, 0.95f);
+            for (int k = 0; k < 4; k++) cblendf(cv, x + ox + NB[k][0], y + oy + NB[k][1], col, 0.45f);
+        }
+        break;
+    }
+    case PROJ_ATOMIC:                                    /* a crackling blue-white core with a halo */
+        for (int dx = -3; dx <= 3; dx++)
+            for (int dy = -3; dy <= 3; dy++) {
+                float d = fsqrt((float)(dx * dx + dy * dy));
+                if (d <= 3.2f) cblendf(cv, x + dx, y + dy, d < 1.4f ? (RGB){230, 248, 255} : (RGB){70, 140, 255}, (1 - d / 3.4f) * (0.8f + 0.2f * flick(t, dx, dy)));
+            }
+        for (int k = 0; k < 3; k++) {
+            float a = flick(t, k, 13) * TAU_F;
+            cblendf(cv, x + fcos(a) * 3.5f, y + fsin(a) * 3.5f, (RGB){200, 230, 255}, 0.9f);
+        }
+        break;
+    case PROJ_SPORE: {                                   /* a pulsing spore pod trailing glowing motes */
+        float r = 1.6f + 0.4f * fsin(t * 7);
+        for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -2; dy <= 2; dy++) {
+                float d = fsqrt((float)(dx * dx + dy * dy));
+                if (d <= r) cblendf(cv, x + dx, y + dy, d > 1.0f ? (RGB){180, 40, 90} : (RGB){255, 220, 190}, 0.95f);
+            }
+        for (int k = 0; k < 3; k++) {
+            float a = t * 4 + k * TAU_F / 3;
+            cblendf(cv, x + fcos(a) * 3, y + fsin(a) * 3, (RGB){170, 255, 210}, 0.8f);
+        }
+        break;
+    }
+    case PROJ_WORM:                                      /* a ringed sandworm head, maw glowing */
+        for (int k = 0; k < 6; k++) {
+            float off = fsin(t * 12 - k * 1.1f);
+            float cx = x - ux * k * 1.4f - uy * off, cy = y - uy * k * 1.4f + ux * off;
+            RGB col = k == 0 ? (RGB){255, 170, 90} : cmix((RGB){214, 170, 100}, (RGB){120, 80, 40}, (k % 2) * 0.6f);
+            float fade = 1 - k / 8.0f;
+            cblendf(cv, cx, cy, col, 0.95f * fade);
+            for (int q = 0; q < 4; q++) cblendf(cv, cx + NB[q][0], cy + NB[q][1], col, 0.5f * fade);
+        }
+        break;
+    case PROJ_SERPENT: {                                 /* a jade serpent head and a weaving feathered body */
+        float px = -uy, py = ux;
+        for (int k = 0; k < 9; k++) {
+            float off = fsin(t * 10 - k * 0.8f) * 1.6f;
+            cblendf(cv, x - ux * k + px * off, y - uy * k + py * off, k % 3 == 0 ? (RGB){250, 214, 120} : (RGB){40, 190, 120}, 0.95f - k * 0.08f);
+        }
+        cplotf(cv, x, y, (RGB){255, 240, 180});
+        break;
+    }
+    case PROJ_ASTRO:                                     /* a gold four-point star turning on a blue halo */
+        for (int k = 0; k < 4; k++) {
+            float a = t * 3 + k * PI_F / 2;
+            for (int q = 1; q < 4; q++) cblendf(cv, x + fcos(a) * q, y + fsin(a) * q, (RGB){255, 226, 140}, 0.95f - q * 0.22f);
+        }
+        for (int k = 0; k < 4; k++) cblendf(cv, x + NB[k][0] * 2, y + NB[k][1] * 2, (RGB){120, 140, 255}, 0.35f);
+        cplotf(cv, x, y, WHITE);
+        break;
+    case PROJ_CANNONBALL:                                /* an iron ball wrapped in green ghost-flame */
+        for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -2; dy <= 2; dy++) {
+                float d = fsqrt((float)(dx * dx + dy * dy));
+                if (d <= 1.5f) cblendf(cv, x + dx, y + dy, (RGB){40, 50, 56}, 1.0f);
+                else if (d <= 2.6f) cblendf(cv, x + dx, y + dy, (RGB){90, 255, 160}, 0.45f + 0.3f * flick(t, dx + 3, dy + 3));
+            }
+        cblendf(cv, x - ux * 3, y - uy * 3 + 1, (RGB){140, 255, 190}, 0.5f);
+        break;
     case PROJ_STREAK:
         for (int i = 0; i < 6; i++) cblendf(cv, x - ux * i, y - uy * i, cmix(WHITE, accent, i / 6.0f), 1.0f - i / 7.0f);
         break;
@@ -666,6 +936,16 @@ static void exp_palette(const Explosion *e, RGB *pal) {
     case BOOM_BLESSING: S4(0, ((RGB){255, 255, 255}), 0.25f, ((RGB){255, 226, 120}), 0.6f, ((RGB){176, 120, 255}), 1.0f, ((RGB){30, 10, 70})); break;
     case BOOM_XENON: S5(0, ((RGB){255, 255, 255}), 0.2f, ((RGB){150, 255, 215}), 0.5f, ((RGB){150, 100, 255}), 0.8f, ((RGB){70, 30, 150}), 1.0f, ((RGB){14, 6, 40})); break;
     case BOOM_ALIEN: S5(0, ((RGB){235, 255, 240}), 0.25f, ((RGB){130, 255, 190}), 0.55f, ((RGB){80, 90, 220}), 0.85f, ((RGB){60, 20, 120}), 1.0f, ((RGB){16, 6, 36})); break;
+    case BOOM_BIOLUME: S5(0, ((RGB){240, 255, 255}), 0.3f, ((RGB){150, 255, 236}), 0.6f, ((RGB){40, 160, 210}), 0.85f, ((RGB){10, 60, 110}), 1.0f, ((RGB){4, 20, 44})); break;
+    case BOOM_FOXFIRE: S5(0, ((RGB){250, 252, 255}), 0.3f, ((RGB){170, 210, 255}), 0.6f, ((RGB){70, 110, 240}), 0.85f, ((RGB){30, 30, 140}), 1.0f, ((RGB){10, 8, 50})); break;
+    case BOOM_HARDLIGHT: S5(0, ((RGB){255, 255, 255}), 0.3f, ((RGB){200, 250, 255}), 0.6f, ((RGB){70, 200, 255}), 0.85f, ((RGB){20, 80, 180}), 1.0f, ((RGB){6, 20, 60})); break;
+    case BOOM_PARADOX: S5(0, ((RGB){255, 255, 255}), 0.3f, ((RGB){220, 200, 255}), 0.6f, ((RGB){140, 90, 240}), 0.85f, ((RGB){50, 20, 120}), 1.0f, ((RGB){12, 4, 36})); break;
+    case BOOM_ATOMIC: S5(0, ((RGB){255, 255, 255}), 0.25f, ((RGB){220, 240, 255}), 0.55f, ((RGB){90, 160, 255}), 0.85f, ((RGB){30, 60, 160}), 1.0f, ((RGB){8, 14, 50})); break;
+    case BOOM_SPORE: S5(0, ((RGB){255, 240, 220}), 0.3f, ((RGB){255, 160, 200}), 0.6f, ((RGB){170, 50, 110}), 0.85f, ((RGB){40, 120, 90}), 1.0f, ((RGB){10, 34, 26})); break;
+    case BOOM_ERUPTION: S5(0, ((RGB){255, 240, 200}), 0.3f, ((RGB){255, 180, 90}), 0.6f, ((RGB){200, 130, 60}), 0.85f, ((RGB){110, 74, 40}), 1.0f, ((RGB){40, 28, 18})); break;
+    case BOOM_JADE: S5(0, ((RGB){255, 250, 220}), 0.3f, ((RGB){180, 255, 210}), 0.6f, ((RGB){40, 180, 120}), 0.85f, ((RGB){14, 80, 56}), 1.0f, ((RGB){4, 26, 20})); break;
+    case BOOM_ZODIAC: S5(0, ((RGB){255, 255, 240}), 0.3f, ((RGB){255, 226, 150}), 0.6f, ((RGB){120, 130, 240}), 0.85f, ((RGB){30, 40, 120}), 1.0f, ((RGB){8, 10, 40})); break;
+    case BOOM_GHOSTFIRE: S5(0, ((RGB){230, 255, 236}), 0.3f, ((RGB){140, 255, 180}), 0.6f, ((RGB){40, 160, 100}), 0.85f, ((RGB){20, 60, 50}), 1.0f, ((RGB){6, 20, 18})); break;
     default: S5(0, ((RGB){255, 252, 238}), 0.28f, cmix(WHITE, a, 0.35f), 0.55f, a, 0.8f, cshade(a, 0.5f), 1.0f, cshade(a, 0.2f));
     }
     for (int i = 0; i < 16; i++) pal[i] = cgradient(ts, cs, n, i / 15.0f);
@@ -953,6 +1233,109 @@ void draw_explosion(Surf *cv, const Explosion *e_in) {
             if (q > 0 && q < 1) ringline(cv, ex, ey, R * (0.5f + 3.0f * ease_out(q)), cmix((RGB){120, 255, 190}, (RGB){190, 120, 255}, k / 2.0f), (1 - q) * 0.85f);
         }
         break;
+    /* 2.0 signature blasts (effects.py _premium2), drawn over the shared fireball */
+    case BOOM_BIOLUME: {                                 /* a jellyfish bloom: a bell of light and trailing tendrils */
+        float q = ease_out(clampf(p / 0.7f, 0, 1));
+        for (int k = 0; k < 40; k++) {
+            float a = PI_F * k / 39;
+            cblendf(cv, ex + fcos(a) * R * 1.8f * q, ey + fsin(a) * R * 1.3f * q, (RGB){160, 255, 236}, (1 - p) * 0.8f);
+        }
+        for (int k = 0; k < 7; k++) {
+            float bx = ex + (k - 3) * R * 0.5f * q;
+            int n = (int)(R * 2.2f * q);
+            for (int q2 = 0; q2 < n; q2++) cblendf(cv, bx + fsin(q2 * 0.6f + p * 9 + k) * 1.2f, ey - q2, (RGB){90, 210, 240}, (1 - p) * 0.55f * (1 - q2 / (R * 2.4f + 1)));
+        }
+        break;
+    }
+    case BOOM_FOXFIRE:                                   /* nine flames rising in a circle */
+        for (int k = 0; k < 9; k++) {
+            float a = k * TAU_F / 9 + p * 2;
+            float fx = ex + fcos(a) * R * 1.6f * ease_out(p), fy = ey + fsin(a) * R * 0.7f + p * R * 1.5f;
+            for (int q = 0; q < 4; q++) cblendf(cv, fx, fy + q, cmix((RGB){240, 252, 255}, (RGB){60, 80, 230}, q / 3.0f), (1 - p) * (0.95f - q * 0.2f));
+        }
+        break;
+    case BOOM_HARDLIGHT: {                               /* a vertical pillar of light and a horizontal flare line */
+        float q = clampf(p / 0.3f, 0, 1);
+        int n = (int)(R * 5 * q);
+        for (int k = 0; k < n; k++) {
+            cblendf(cv, ex, ey + k, WHITE, (1 - p) * 0.9f);
+            cblendf(cv, ex - 1, ey + k, (RGB){90, 230, 255}, (1 - p) * 0.5f);
+            cblendf(cv, ex + 1, ey + k, (RGB){90, 230, 255}, (1 - p) * 0.5f);
+        }
+        int m = (int)(R * 3.5f);
+        for (int k = -m; k <= m; k++) cblendf(cv, ex + k, ey, (RGB){180, 245, 255}, (1 - p) * 0.8f * (1 - fabsf((float)k) / (R * 3.6f)));
+        break;
+    }
+    case BOOM_PARADOX:                                   /* two rings expanding in opposite directions of time */
+        ringline(cv, ex, ey, R * (0.4f + 2.6f * ease_out(p)), (RGB){210, 170, 255}, (1 - p) * 0.85f);
+        ringline(cv, ex, ey, R * (0.4f + 2.6f * ease_out(1 - p)), WHITE, (1 - p) * 0.85f);
+        for (int k = 0; k < 4; k++) {
+            float a = k * PI_F / 2 + p * 4;
+            cblendf(cv, ex + fcos(a) * R * 2 * p, ey + fsin(a) * R * 2 * p, WHITE, 1 - p);
+        }
+        break;
+    case BOOM_ATOMIC: {                                  /* a mushroom cloud: a rising stem and a rolling cap, a shockwave ring */
+        float q = ease_out(clampf(p / 0.8f, 0, 1)), top = ey + R * 3.4f * q;
+        int n = (int)(R * 3.4f * q);
+        for (int k = 0; k < n; k++) {
+            float w = R * (0.35f + 0.15f * fsin(k * 0.5f + p * 8));
+            for (int dx = -(int)w; dx <= (int)w; dx++) cblendf(cv, ex + dx, ey + k, (RGB){170, 210, 255}, (1 - p) * 0.55f);
+        }
+        float rx = R * 1.9f * q, ry = R * 0.9f * q, rxd = fmaxf(1, rx), ryd = fmaxf(1, ry), rq = fmaxf(1, R * q);
+        for (int dx = -(int)rx; dx <= (int)rx; dx++)
+            for (int dy = -(int)ry; dy <= (int)ry; dy++) {
+                float a = dx / rxd, b = dy / ryd;
+                if (a * a + b * b <= 1) cblendf(cv, ex + dx, top + dy, cmix((RGB){240, 250, 255}, (RGB){60, 110, 230}, fabsf((float)dy) / rq), (1 - p) * 0.7f);
+            }
+        ringline(cv, ex, ey, R * (1 + 3.5f * ease_out(p)), (RGB){200, 230, 255}, (1 - p) * 0.7f);
+        break;
+    }
+    case BOOM_SPORE:                                     /* a ring of spores drifting out and up */
+        for (int k = 0; k < 14; k++) {
+            float a = k * TAU_F / 14, r2 = R * (0.6f + 2.2f * ease_out(p));
+            cblendf(cv, ex + fcos(a) * r2, ey + fsin(a) * r2 * 0.7f + p * R, k % 2 ? (RGB){190, 255, 220} : (RGB){255, 200, 230}, (1 - p) * 0.9f);
+        }
+        break;
+    case BOOM_ERUPTION: {                                /* a column of sand and fire bursting straight up from below */
+        float q = ease_out(clampf(p / 0.5f, 0, 1));
+        int n = (int)(R * 4.5f * q);
+        for (int k = 0; k < n; k++) {
+            float spread = 0.6f + k * 0.12f, kk = k / (R * 4.5f + 1);
+            RGB c = cmix((RGB){255, 200, 120}, (RGB){190, 140, 80}, kk);
+            for (int dx = -(int)(R * spread); dx <= (int)(R * spread); dx++)
+                cblendf(cv, ex + dx + fsin(k * 0.7f + p * 10) * 0.8f, ey + k, c, (1 - p) * (0.75f - 0.4f * kk));
+        }
+        break;
+    }
+    case BOOM_JADE:                                      /* a jade serpent ring biting its own tail, gold glints */
+        for (int k = 0; k < 36; k++) {
+            float a = k * TAU_F / 36 + p * 3, r2 = R * (0.8f + 1.6f * ease_out(p)) * (1 + 0.08f * fsin(k * 1.3f));
+            cblendf(cv, ex + fcos(a) * r2, ey + fsin(a) * r2 * 0.8f, k % 6 == 0 ? (RGB){250, 214, 120} : (RGB){60, 210, 140}, (1 - p) * 0.9f);
+        }
+        break;
+    case BOOM_ZODIAC: {                                  /* a five-point star drawn in gold lines */
+        float q = ease_out(clampf(p / 0.4f, 0, 1)), px[5], py[5];
+        for (int k = 0; k < 5; k++) {
+            float a = PI_F / 2 + k * TAU_F * 2 / 5;
+            px[k] = ex + fcos(a) * R * 2.2f * q;
+            py[k] = ey + fsin(a) * R * 2.2f * q;
+        }
+        for (int k = 0; k < 5; k++) {
+            float x0 = px[k], y0 = py[k], x1 = px[(k + 1) % 5], y1 = py[(k + 1) % 5];
+            int n = (int)fmaxf(fabsf(x1 - x0), fabsf(y1 - y0)) + 1;
+            for (int j = 0; j <= n; j++) cblendf(cv, x0 + (x1 - x0) * j / n, y0 + (y1 - y0) * j / n, (RGB){255, 226, 140}, (1 - p) * 0.85f);
+            cblendf(cv, x0, y0, WHITE, 1 - p);
+        }
+        break;
+    }
+    case BOOM_GHOSTFIRE:                                 /* green ghost-flames and a skull-pale flash */
+        for (int k = 0; k < 10; k++) {
+            float a = k * TAU_F / 10 + p * 1.5f;
+            float bx = ex + fcos(a) * R * 1.5f * ease_out(p), by = ey + fabsf(fsin(a)) * R * 0.8f;
+            for (int q = 0; q < 5; q++)
+                cblendf(cv, bx + fsin(p * 12 + k + q) * 0.6f, by + q + p * R * 2, cmix((RGB){220, 255, 230}, (RGB){30, 120, 60}, q / 4.0f), (1 - p) * (0.9f - q * 0.15f));
+        }
+        break;
     default: break;
     }
 }
@@ -983,13 +1366,325 @@ static void b_windows(Scenery *sc, int x0, int y0, int w, int h, Px lit, int see
             if (((x * 7 + y * 13 + seed) % 5 + 5) % 5 < 3) bput(sc, x, y, lit);
 }
 
-static void bake_buildings(Scenery *sc, int kind, Px col, Px lit) {
+/* ---- 2.0 skylines (scenery.py _bk_*): each is the original's drawing, primitive for primitive, with its own rng draws */
+static int fdiv(int a, int b) { int q = a / b; return (a % b != 0 && ((a < 0) != (b < 0))) ? q - 1 : q; }   /* Python // */
+static void bk_line(Scenery *sc, double x0, double y0, double x1, double y1, Px c) {
+    int n = (int)fmax(fabs(x1 - x0), fabs(y1 - y0)) + 1;
+    for (int i = 0; i <= n; i++) bput(sc, (int)nearbyint(x0 + (x1 - x0) * i / n), (int)nearbyint(y0 + (y1 - y0) * i / n), c);
+}
+static Px pxs(RGB c, float k) { return rgb15(cshade(c, k)); }
+#define PXC(r_, g_, b_) rgb15((RGB){r_, g_, b_})
+static const double BK_TAU = 6.283185307179586, BK_PI = 3.141592653589793;
+
+static void bk_kelp(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, Px lit) {
+    int cxs[2] = {w / 5, w - w / 4};
+    for (int i = 0; i < 2; i++) {
+        int cx = cxs[i], R = (int)(h * 0.18);
+        for (int a = 0; a <= 180; a += 2) {
+            double ang = a * BK_PI / 180.0;
+            for (int t = 0; t < 3; t++) bput(sc, (int)(cx + cos(ang) * (R - t)), (int)(b + sin(ang) * (R - t) * 1.3), col);
+        }
+    }
+    int n = w / 6 > 6 ? w / 6 : 6;
+    for (int i = 0; i < n; i++) {
+        int x0 = rng_randint(r, 2, w - 3);
+        int ht = (int)(h * rng_uniform(r, 0.3, 0.72));
+        double ph = rng_uniform(r, 0, BK_TAU);
+        for (int y = 0; y < ht; y++) {
+            int x = (int)(x0 + sin(y * 0.18 + ph) * 2.2);
+            bput(sc, x, b + y, col);
+            if (y % 3 == 0) {
+                int odd = (y / 3) % 2;
+                bput(sc, x + (odd ? 1 : -1), b + y, col);
+                bput(sc, x + (odd ? 2 : -2), b + y + 1, col);
+            }
+            if (y % 9 == 4) bput(sc, x, b + y + 1, lit);
+        }
+    }
+}
+
+static void bk_torii(Scenery *sc, int w, int h, int b, Px col, Px lit) {
+    int cx = (int)(w * 0.62), top = b + (int)(h * 0.55);
+    for (int x = 0; x < w; x++) {
+        int y_ = top - (int)(abs(x - cx) * 0.9);
+        for (int y = b; y < (y_ > b ? y_ : b); y++) bput(sc, x, y, col);
+    }
+    Px dark = PXC(40, 20, 24);
+    for (int k = 0; k < 5; k++) {
+        int gx = (int)(cx - (5 - k) * (w * 0.07));
+        int gy = top - (int)(abs(gx - cx) * 0.9);
+        double s = 0.75 + k * 0.08;
+        int hw = (int)(6 * s), hh = (int)(10 * s);
+        b_rect(sc, gx - hw, gy, 2, hh, lit);
+        b_rect(sc, gx + hw, gy, 2, hh, lit);
+        for (int x = gx - hw - 2; x < gx + hw + 4; x++) {
+            int lift = abs(x - gx) > hw ? 1 : 0;
+            bput(sc, x, gy + hh + lift, lit);
+            bput(sc, x, gy + hh + 1 + lift, dark);
+        }
+        for (int x = gx - hw; x <= gx + hw; x++) bput(sc, x, gy + hh - 3, lit);
+    }
+    b_rect(sc, cx - 5, top, 11, 5, col);
+    b_tri(sc, cx, top + 5, 8, 4, col);
+    bput(sc, cx, top + 2, lit);
+    bput(sc, cx, top + 3, lit);
+}
+
+static void bk_holo(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, RGB litc) {
+    Px lit = rgb15(litc), wl = pxs(litc, 0.6f);
+    int x = 1;
+    while (x < w - 3) {
+        int bw = rng_randint(r, 5, 10), bh = (int)(h * rng_uniform(r, 0.25, 0.7));
+        b_rect(sc, x, b, bw, bh, col);
+        b_windows(sc, x, b, bw, bh, wl, x);
+        if (rng_random(r) < 0.45 && bw >= 6) {                  /* a billboard: a glowing panel with scanlines */
+            int by = b + bh - rng_randint(r, 6, 10), bh2 = rng_randint(r, 4, 6);
+            RGB c1 = rng_random(r) < 0.5 ? litc : (RGB){255, 80, 210};
+            Px ce = rgb15(c1), c75 = pxs(c1, 0.75f), c40 = pxs(c1, 0.4f);
+            for (int yy = by; yy <= by + bh2; yy++)
+                for (int xx = x - 1; xx <= x + bw; xx++) {
+                    bool edge = yy == by || yy == by + bh2 || xx == x - 1 || xx == x + bw;
+                    bput(sc, xx, yy, edge ? ce : ((yy & 1) ? c75 : c40));
+                }
+        }
+        if (rng_random(r) < 0.5) {
+            int ant = rng_randint(r, 3, 8);
+            b_rect(sc, x + bw / 2, b + bh, 1, ant, col);
+            bput(sc, x + bw / 2, b + bh + 8, PXC(255, 70, 90));
+        }
+        x += bw + rng_randint(r, 0, 2);
+    }
+    (void)lit;
+}
+
+static void bk_tesseract(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, Px lit) {
+    int cx = w / 2, cy = b + (int)(h * 0.42), S = (int)(h * 0.16);
+    double a = 0.6, c = 0.45, px[16], py[16];
+    for (int i = 0; i < 16; i++) {
+        double v[4];
+        for (int k = 0; k < 4; k++) v[k] = (i >> k & 1) ? 1 : -1;
+        double x = v[0], y = v[1], z = v[2], ww = v[3];
+        double x2 = x * cos(a) - ww * sin(a), w2 = x * sin(a) + ww * cos(a);
+        double y2 = y * cos(c) - z * sin(c), z2 = y * sin(c) + z * cos(c);
+        double k4 = 2.2 / (3.2 - w2), k3 = 3.0 / (4.2 - z2 * k4);
+        px[i] = cx + x2 * k4 * k3 * S * 1.5;
+        py[i] = cy + y2 * k4 * k3 * S;
+    }
+    for (int i = 0; i < 16; i++)
+        for (int j = i + 1; j < 16; j++)
+            if (__builtin_popcount((unsigned)(i ^ j)) == 1) bk_line(sc, px[i], py[i], px[j], py[j], lit);
+    for (int k = 0; k < 7; k++) {                                /* floating slabs */
+        int sx = rng_randint(r, 4, w - 12);
+        int sy = b + (int)(h * rng_uniform(r, 0.05, 0.6));
+        int sw = rng_randint(r, 5, 10);
+        b_rect(sc, sx, sy, sw, 2, col);
+        b_tri(sc, sx + sw / 2, sy - 3, sw / 2, 3, col);
+    }
+}
+
+static void bk_kaiju(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, Px lit) {
+    int x = 1;
+    while (x < w * 0.4) {
+        int bw = rng_randint(r, 4, 8), bh = (int)(h * rng_uniform(r, 0.15, 0.45));
+        b_rect(sc, x, b, bw, bh, col);
+        if (rng_random(r) < 0.4)                                 /* a smashed top */
+            for (int k = 0; k < bw; k++) if ((k * 3) % 5 < 2) bput(sc, x + k, b + bh, col);
+        b_windows(sc, x, b, bw, bh, lit, x);
+        x += bw + rng_randint(r, 1, 2);
+    }
+    int kx = (int)(w * 0.78);
+    double s = h / 70.0;
+    static const int16_t body[12][2] = {{-24, 0}, {-22, 20}, {-14, 34}, {-4, 42}, {6, 46}, {14, 44}, {18, 38}, {14, 33}, {10, 29}, {12, 21}, {22, 12}, {25, 0}};
+    for (int y = 0; y < (int)(48 * s); y++) {                     /* fill the outline row by row */
+        double yy = y / s, mn = 1e9, mx = -1e9;
+        int nx = 0;
+        for (int i = 0; i < 11; i++) {
+            double ax = body[i][0], ay = body[i][1], bx = body[i + 1][0], by = body[i + 1][1];
+            if ((ay <= yy && yy < by) || (by <= yy && yy < ay)) {
+                double xv = ax + (yy - ay) * (bx - ax) / (by - ay);
+                if (xv < mn) mn = xv;
+                if (xv > mx) mx = xv;
+                nx++;
+            }
+        }
+        if (nx >= 2)
+            for (int xx = (int)(mn * s); xx <= (int)(mx * s); xx++) bput(sc, kx - xx, b + y, col);
+    }
+    for (int k = 0; k < 9; k++) {                                /* its dorsal plates, faintly glowing */
+        double f = k / 8.0;
+        int px = kx - (int)((-16 + f * 22) * s), py = b + (int)((22 + f * 22) * s);
+        for (int q = 0; q < (int)((4 + 3 * sin(f * BK_PI)) * s); q++) bput(sc, px, py + q, lit);
+    }
+    bput(sc, kx - (int)(13 * s), b + (int)(41 * s), PXC(255, 120, 60));
+}
+
+static void bk_shrooms(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, RGB litc) {
+    Px lit = rgb15(litc), l45 = pxs(litc, 0.45f), l60 = pxs(litc, 0.6f);
+    int n = w / 22 > 4 ? w / 22 : 4;
+    for (int i = 0; i < n; i++) {
+        int den = w / 22 - 1 > 1 ? w / 22 - 1 : 1;
+        int cx = w / 22 > 1 ? (int)(w * (0.05 + i * 0.9 / den)) : w / 2;
+        int stem = (int)(h * rng_uniform(r, 0.12, 0.32));
+        b_rect(sc, cx - 1, b, 3, stem, col);
+        int rx = rng_randint(r, 9, 17), ry = rng_randint(r, 4, 7);
+        for (int x = cx - rx; x <= cx + rx; x++)
+            for (int y = 0; y < ry; y++) {
+                double d = ((double)(x - cx) / rx) * ((double)(x - cx) / rx) + ((double)y / ry) * ((double)y / ry);
+                if (d <= 1) bput(sc, x, b + stem + y, d > 0.7 ? l45 : col);
+            }
+        for (int x = cx - rx + 1; x < cx + rx; x++) bput(sc, x, b + stem - 1, (x % 2) ? l60 : col);   /* glowing gills */
+        for (int k = 0; k < 5; k++) {
+            int dx = rng_randint(r, -rx + 2, rx - 2);
+            int dy = rng_randint(r, 1, ry - 1);
+            bput(sc, cx + dx, b + stem + dy, lit);
+        }
+    }
+}
+
+static void bk_wormarch(Scenery *sc, int w, int h, int b, Px col, Px lit) {
+    int x0 = (int)(w * 0.18), x1 = (int)(w * 0.82);
+    for (int k = 0; k < 240; k++) {
+        double u = k / 239.0, x = x0 + (x1 - x0) * u, y = b + sin(u * BK_PI) * h * 0.5, rad = 4 + 3 * sin(u * BK_PI);
+        for (int dy = -(int)rad; dy <= (int)rad; dy++)
+            bput(sc, (int)x, (int)(y + dy), (k % 8 < 2 && abs(dy) < rad - 1) ? lit : col);
+    }
+    for (int x = 0; x < w; x++) {                                /* dunes along the horizon */
+        int n = (int)(4 + 3 * sin(x * 0.07) + 2 * sin(x * 0.19));
+        for (int y = 0; y < n; y++) bput(sc, x, b + y, col);
+    }
+}
+
+static void bk_stepped(Scenery *sc, PyRandom *r, int w, int h, int b, RGB colc, Px lit) {
+    Px col = rgb15(colc), c80 = pxs(colc, 0.8f);
+    int cxs[2] = {w / 4, w - w / 4};
+    double ss[2] = {1.0, 0.8};
+    for (int i = 0; i < 2; i++) {
+        int cx = cxs[i], tiers = 6, tw = (int)(h * 0.3 * ss[i]);
+        double s = ss[i];
+        for (int k = 0; k < tiers; k++) {
+            int ww = (int)(tw * (1 - (double)k / (tiers + 1)));
+            b_rect(sc, cx - ww, b + k * (int)(4 * s + 1), 2 * ww + 1, (int)(4 * s + 1), col);
+        }
+        int top = b + tiers * (int)(4 * s + 1);
+        b_rect(sc, cx - 3, top, 7, (int)(5 * s) + 1, col);
+        bput(sc, cx, top + 1, lit);
+        bput(sc, cx, top + 2, lit);
+        b_rect(sc, cx - 1, b, 3, top - b, c80);                 /* the central stair */
+    }
+    for (int i = 0; i < w / 5; i++) {
+        int cx = rng_randint(r, 0, w - 1), R = rng_randint(r, 3, 6);
+        for (int x = cx - R; x <= cx + R; x++)
+            for (int y = 0; y < R; y++) {
+                double a = (double)(x - cx) / R, c = (double)y / R;
+                if (a * a + c * c <= 1) bput(sc, x, b + (int)(h * 0.05) + y, col);
+            }
+    }
+}
+
+static void bk_orrery(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, Px lit) {
+    int cx = w / 2, cy = b + (int)(h * 0.45);
+    Px brass = PXC(240, 200, 120);
+    const double RS[4] = {0.12, 0.2, 0.3, 0.4}, TILT[4] = {0.45, 0.38, 0.3, 0.24};
+    for (int i = 0; i < 4; i++) {
+        double R = h * RS[i], tilt = TILT[i];
+        int n = (int)(R * 12);
+        for (int k = 0; k < n; k++) {
+            double a = k * BK_TAU / n;
+            bput(sc, (int)(cx + cos(a) * R * 2.2), (int)(cy + sin(a) * R * tilt * 2), k % 24 == 0 ? brass : lit);
+        }
+        double a = rng_uniform(r, 0, BK_TAU);
+        int px = (int)(cx + cos(a) * R * 2.2), py = (int)(cy + sin(a) * R * tilt * 2);
+        for (int dx = -2; dx <= 2; dx++) for (int dy = -2; dy <= 2; dy++) if (dx * dx + dy * dy <= 4) bput(sc, px + dx, py + dy, lit);
+    }
+    for (int dx = -4; dx <= 4; dx++) for (int dy = -4; dy <= 4; dy++) if (dx * dx + dy * dy <= 16) bput(sc, cx + dx, cy + dy, lit);
+    for (int k = 0; k < 2; k++) {                                /* the meridian frame */
+        double R = h * 0.46;
+        for (int j = 0; j < 200; j++) {
+            double a = BK_PI * j / 199;
+            bput(sc, (int)(cx + cos(a) * R * 2.2 * (0.5 + 0.5 * k)), (int)(cy + sin(a) * R), col);
+        }
+    }
+}
+
+static void bk_wrecks(Scenery *sc, PyRandom *r, int w, int h, int b, Px col, Px lit) {
+    b += (int)(h * 0.14);                                        /* the wrecks sit up on the reef, clear of the battlefield */
+    Px ghost = PXC(110, 190, 160), sail = PXC(34, 62, 58);
+    for (int i = 0; i < 4; i++) {
+        int cx = (int)(w * (0.12 + i * 0.25)) + rng_randint(r, -4, 4);
+        int L = rng_randint(r, 16, 26), hh = rng_randint(r, 4, 7);
+        double tilt = rng_uniform(r, -0.25, 0.25);
+        for (int x = fdiv(-L, 2); x < L / 2; x++) {
+            double q = fabs((double)x) / (L / 2.0);
+            int top = (int)(hh * (1 - q * q * q)) + (int)(x * tilt);
+            for (int y = 0; y < (top > 0 ? top : 0); y++) bput(sc, cx + x, b + y, col);
+        }
+        for (int m = 0; m < 2; m++) {
+            int mx = cx + rng_randint(r, fdiv(-L, 3), L / 3);
+            int ml = (int)(h * rng_uniform(r, 0.2, 0.4));
+            double lean = rng_uniform(r, -0.6, 0.6);
+            for (int s = 0; s < ml; s++) {
+                bput(sc, (int)(mx + s * lean * 0.5), b + hh + s, col);
+                bput(sc, (int)(mx + s * lean * 0.5) + 1, b + hh + s, col);
+            }
+            for (int s = 6; s < ml - 3; s += 8) {                /* tattered sails, ghost-lit at the edges */
+                int sw = 6 - s / 10;
+                for (int yy = 0; yy < 6; yy++)
+                    for (int k = -sw; k <= sw; k++) {
+                        if ((k == 1 && yy == 2) || (k == -2 && yy == 4) || (k == 2 && yy == 3)) continue;   /* rips */
+                        bool edge = abs(k) == sw || yy == 0;
+                        bput(sc, (int)(mx + (s - yy) * lean * 0.5) + k, b + hh + s - yy, edge ? ghost : sail);
+                    }
+            }
+        }
+        bput(sc, cx + L / 2 - 2, b + hh + 2, lit);
+        bput(sc, cx - L / 2 + 3, b + 2, lit);
+    }
+}
+
+/* the light colour of each 2.0 skyline (scenery.py _BAKE_LIT); 0 alpha = the default lamp colour */
+static bool bake_lit(int kind, RGB *out) {
+    switch (kind) {
+    case BLD_KELP: *out = (RGB){110, 230, 210}; return true;
+    case BLD_TORII: *out = (RGB){214, 58, 44}; return true;
+    case BLD_HOLO: *out = (RGB){90, 230, 255}; return true;
+    case BLD_TESSERACT: *out = (RGB){200, 170, 255}; return true;
+    case BLD_KAIJU: *out = (RGB){120, 190, 255}; return true;
+    case BLD_SHROOMS: *out = (RGB){170, 255, 210}; return true;
+    case BLD_WORMARCH: *out = (RGB){150, 104, 62}; return true;
+    case BLD_STEPPED: *out = (RGB){255, 190, 90}; return true;
+    case BLD_ORRERY: *out = (RGB){130, 102, 58}; return true;
+    case BLD_WRECKS: *out = (RGB){130, 255, 180}; return true;
+    default: return false;
+    }
+}
+
+/* returns true when `kind` is a 2.0 skyline (drawn here instead of the 1.5 switch) */
+static bool bake_extra(Scenery *sc, PyRandom *r, int kind, int w, int h, int b, RGB colc, RGB litc) {
+    Px col = rgb15(colc), lit = rgb15(litc);
+    switch (kind) {
+    case BLD_KELP: bk_kelp(sc, r, w, h, b, col, lit); return true;
+    case BLD_TORII: bk_torii(sc, w, h, b, col, lit); return true;
+    case BLD_HOLO: bk_holo(sc, r, w, h, b, col, litc); return true;
+    case BLD_TESSERACT: bk_tesseract(sc, r, w, h, b, col, lit); return true;
+    case BLD_KAIJU: bk_kaiju(sc, r, w, h, b, col, lit); return true;
+    case BLD_SHROOMS: bk_shrooms(sc, r, w, h, b, col, litc); return true;
+    case BLD_WORMARCH: bk_wormarch(sc, w, h, b, col, lit); return true;
+    case BLD_STEPPED: bk_stepped(sc, r, w, h, b, colc, lit); return true;
+    case BLD_ORRERY: bk_orrery(sc, r, w, h, b, col, lit); return true;
+    case BLD_WRECKS: bk_wrecks(sc, r, w, h, b, col, lit); return true;
+    default: return false;
+    }
+}
+
+static void bake_buildings(Scenery *sc, int kind, RGB colc, RGB litc) {
+    Px col = rgb15(colc), lit = rgb15(litc);
     int w = sc->width, h = sc->height, base_y = (int)(h * 0.2);
     const char *name = BUILDING_NAMES[kind];
     uint32_t sum = 0;
     for (const char *p = name; *p; p++) sum += (unsigned char)*p;
     PyRandom r;
     rng_seed(&r, (uint64_t)(w * 31 + h * 7 + sum));
+    if (bake_extra(sc, &r, kind, w, h, base_y, colc, litc)) return;
     switch (kind) {
     case BLD_SKYLINE: {
         int x = 2;
@@ -1195,8 +1890,8 @@ void scenery_build(Scenery *sc, const World *w) {
     }
     for (int py = 0; py < H; py++) for (int x = 0; x < W; x++) sc->sky[py][x] = rgb15(rows[py][x]);
     if (th->buildings) {
-        Px col = rgb15(cmix(th->sky_bottom, BLACK, 0.62f));
-        Px lit = rgb15(cmix((RGB){255, 220, 140}, (RGB){255, 230, 150}, 0.5f));
+        RGB col = cmix(th->sky_bottom, BLACK, 0.62f), lit = cmix((RGB){255, 220, 140}, (RGB){255, 230, 150}, 0.5f);
+        bake_lit(th->buildings, &lit);
         bake_buildings(sc, th->buildings, col, lit);
     }
     sc->terrain_version = -1;
@@ -1373,6 +2068,33 @@ static void rift_draw(Scenery *sc, Surf *cv, float t) {
         }
 }
 
+/* Mariana Deep (FX_PLANKTON): pale jellyfish drifting up through the water, bells pulsing, tendrils trailing */
+static void jellies_draw(Scenery *sc, Surf *cv, float t) {
+    float w = (float)sc->width, h = (float)sc->height;
+    static const float XF[3] = {0.22f, 0.7f, 0.48f}, SZ[3] = {1.0f, 0.8f, 0.55f}, SPD[3] = {1.0f, 1.3f, 1.7f};
+    static const RGB COL[3] = {{255, 150, 220}, {140, 220, 255}, {190, 255, 210}};
+    for (int j = 0; j < 3; j++) {
+        float y = fmodf(t * SPD[j] * 2.2f + j * h * 0.5f, h * 1.2f) - h * 0.1f;   /* y up */
+        float x = w * XF[j] + fsin(t * 0.5f + j) * 4;
+        float pulse = 0.5f + 0.5f * fsin(t * 2.3f + j);
+        float rx = 6 * SZ[j] * (1 + 0.15f * pulse), ry = 4 * SZ[j] * (1 - 0.12f * pulse);
+        int ns = (int)(16 * SZ[j]);
+        for (int k = 0; k < 7; k++) {
+            float tx = x + (k - 3) * rx * 0.28f;
+            for (int q = 0; q < ns; q++) sky_blend(sc, cv, tx + fsin(q * 0.3f - t * 2 + k) * 1.1f, y - q, COL[j], 0.4f * (1 - q / (16 * SZ[j])));
+        }
+        RGB bell = cmix(COL[j], WHITE, 0.4f);
+        for (int dy = 0; dy <= (int)ry; dy++) {
+            float f = dy / (ry > 1 ? ry : 1);
+            float ww = rx * sqrtf(1 - f * f > 0 ? 1 - f * f : 0);
+            for (int dx = -(int)ww; dx <= (int)ww; dx++) {
+                bool edge = abs(dx) >= (int)ww - 1 || dy == (int)ry;
+                sky_blend(sc, cv, x + dx, y + dy, bell, edge ? 0.75f : 0.3f);
+            }
+        }
+    }
+}
+
 void scenery_draw(Scenery *sc, const World *w, Surf *cv, float t, bool flashes) {
     const MapTheme *th = &THEMES[sc->theme];
     if (sc->terrain_version != w->terrain.version) scenery_terrain(sc, w);
@@ -1463,6 +2185,8 @@ void scenery_draw(Scenery *sc, const World *w, Surf *cv, float t, bool flashes) 
         }
     } else if (th->fx == FX_RIFT) {
         rift_draw(sc, cv, t);
+    } else if (th->fx == FX_PLANKTON) {
+        jellies_draw(sc, cv, t);
     }
 }
 

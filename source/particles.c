@@ -90,6 +90,48 @@ void fx_trail(Particles *ps, float x, float y, RGB accent, int style, int n, flo
 #define PLAIN() parts_emit(ps, x, y, 0, 0, l, l, plain_c0, plain_c1, 0, 0, 0.9f, false, 1, 0)
     switch (style) {
     case TRAIL_PLAIN: PLAIN(); break;
+    /* 2.0 trails (effects.py trail) */
+    case TRAIL_BIOLUME:                                   /* slow glowing droplets that sink and fade like plankton */
+        parts_emit(ps, x, y, 0, 0, l * 1.2f, l * 1.2f, (RGB){150, 255, 236}, (RGB){10, 50, 90}, 0, 0, 0.85f, false, 1, 0);
+        if (R(ps) < 0.45f) { float a = U(ps, -1, 1), b = U(ps, -2, 2), c = U(ps, -4, -1);
+            parts_emit(ps, x + a, y, b, c, l * 1.8f, l * 1.8f, (RGB){90, 220, 230}, (RGB){10, 40, 70}, 0, 0, 0.7f, false, R(ps) < 0.2f ? 2 : 1, 0); }
+        break;
+    case TRAIL_FOXFIRE: { float a = U(ps, -0.8f, 0.8f), b = U(ps, -2, 2), c = U(ps, 3, 10);
+        parts_emit(ps, x + a, y, b, c, l * 0.9f, l * 0.9f, (RGB){180, 220, 255}, (RGB){40, 50, 200}, -14, 0, 0.95f, false, R(ps) < 0.3f ? 2 : 1, 0); break; }
+    case TRAIL_HARDLIGHT:                                 /* a hard, bright line that lingers, edged in cyan */
+        parts_emit(ps, x, y, 0, 0, l * 1.5f, l * 1.5f, WHITE, (RGB){30, 120, 255}, 0, 0, 0.95f, false, 1, 0);
+        parts_emit(ps, x, y + 1, 0, 0, l * 0.9f, l * 0.9f, (RGB){90, 230, 255}, (RGB){10, 40, 120}, 0, 0, 0.5f, false, 1, 0);
+        break;
+    case TRAIL_PARADOX: {                                 /* afterimages that alternate between now and then */
+        RGB c = n % 2 ? WHITE : (RGB){190, 140, 255};
+        parts_emit(ps, x, y, 0, 0, l, l, c, (RGB){40, 20, 90}, 0, 0, 0.85f, false, 1, 0);
+        if (n % 5 == 0) parts_emit(ps, x, y, 0, 0, l * 1.6f, l * 1.6f, (RGB){150, 110, 255}, (RGB){20, 10, 50}, 0, 0, 0.4f, false, 2, 0);
+        break;
+    }
+    case TRAIL_ATOMIC:
+        parts_emit(ps, x, y, 0, 0, l, l, (RGB){210, 240, 255}, (RGB){30, 60, 160}, 0, 0, 0.9f, false, n % 3 == 0 ? 2 : 1, 0);
+        if (R(ps) < 0.5f) { float a = U(ps, 0, TAU_F);
+            parts_emit(ps, x, y, fcos(a) * 12, fsin(a) * 12, 0.25f, 0.25f, WHITE, (RGB){80, 140, 255}, 0, 2.0f, 1, false, 1, 0); }
+        break;
+    case TRAIL_SPORES: { float a = U(ps, -1, 1), b = U(ps, -1, 1), c = U(ps, -3, 3), d = U(ps, -1, 4);
+        parts_emit(ps, x + a, y + b, c, d, l * 1.6f, l * 1.6f, (RGB){180, 255, 214}, (RGB){40, 110, 90}, 0, 0, 0.75f, false, 1, 0.6f); break; }
+    case TRAIL_SAND: { float a = U(ps, -3, 3), b = U(ps, -2, 3);
+        parts_emit(ps, x, y, a, b, l, l, (RGB){230, 196, 130}, (RGB){120, 84, 46}, 50, 0, 0.9f, false, 1, 0);
+        if (R(ps) < 0.3f) { float c = U(ps, -4, 4), d = U(ps, 2, 6);
+            parts_emit(ps, x, y, c, d, l * 1.4f, l * 1.4f, (RGB){200, 170, 120}, (RGB){90, 70, 50}, 0, 0, 0.4f, false, 2, 0.8f); }
+        break; }
+    case TRAIL_FEATHERS: { RGB c = n % 3 ? (RGB){60, 220, 150} : (RGB){230, 70, 60};
+        float a = U(ps, -1, 1), b = U(ps, -3, 3), d = U(ps, -4, 1);
+        parts_emit(ps, x + a, y, b, d, l * 1.4f, l * 1.4f, c, cshade(c, 0.3f), 0, 0, 0.9f, false, 1, 0.7f); break; }
+    case TRAIL_CONSTELLATION:                             /* a dotted line of stars: every fourth step a bright one */
+        if (n % 4 == 0) parts_emit(ps, x, y, 0, 0, l * 2.0f, l * 2.0f, (RGB){255, 250, 220}, (RGB){90, 110, 230}, 0, 0, 0.95f, false, 2, 0);
+        else if (n % 2 == 0) parts_emit(ps, x, y, 0, 0, l * 1.3f, l * 1.3f, (RGB){220, 190, 120}, (RGB){40, 40, 110}, 0, 0, 0.6f, false, 1, 0);
+        break;
+    case TRAIL_GHOSTFIRE: { float a = U(ps, -0.6f, 0.6f), b = U(ps, -2, 2), c = U(ps, 3, 10);
+        parts_emit(ps, x + a, y, b, c, l * 0.9f, l * 0.9f, (RGB){200, 255, 220}, (RGB){20, 80, 50}, -12, 0, 0.9f, false, R(ps) < 0.35f ? 2 : 1, 0);
+        if (R(ps) < 0.3f) { float d = U(ps, -3, 3), e = U(ps, -1, 3);
+            parts_emit(ps, x, y, d, e, l * 2, l * 2, (RGB){120, 150, 140}, (RGB){20, 30, 30}, 0, 0, 0.35f, false, 2, 0.8f); }
+        break; }
     case TRAIL_DASH: if (n % 4 < 2) parts_emit(ps, x, y, 0, 0, l * 0.8f, l * 0.8f, WHITE, cshade(accent, 0.3f), 0, 0, 1, false, 1, 0); break;
     case TRAIL_GLOW: parts_emit(ps, x, y, 0, 0, l * 1.1f, l * 1.1f, cmix(accent, WHITE, 0.35f), cshade(accent, 0.1f), 0, 0, 0.55f, false, 2, 0); break;
     case TRAIL_SPARKS:
@@ -291,12 +333,48 @@ void fx_impact(Particles *ps, float x, float y, RGB accent, RGB soil, float scal
         }
         break;
     case BOOM_ALIEN: BURST(ps, x, y, nn(ps, 40 * scale), 12, 52, 0.8f, 1.6f, (RGB){150, 255, 200}, (RGB){110, 50, 200}, -10, 0.8f, 2, 1); break;
+    /* 2.0 impacts (effects.py impact) */
+    case BOOM_BIOLUME: BURST(ps, x, y, nn(ps, 40 * scale), 6, 30, 1.6f, 2.8f, (RGB){150, 255, 236}, (RGB){10, 50, 90}, -4, 0.9f, 1, 0.85f); break;
+    case BOOM_FOXFIRE: BURST(ps, x, y, nn(ps, 40 * scale), 10, 40, 0.7f, 1.4f, (RGB){200, 230, 255}, (RGB){40, 50, 200}, -22, 0.6f, 2, 1); break;
+    case BOOM_HARDLIGHT: BURST(ps, x, y, nn(ps, 34 * scale), 40, 110, 0.25f, 0.5f, WHITE, (RGB){40, 160, 255}, 0, 1.2f, 1, 1); break;
+    case BOOM_PARADOX:
+        BURST(ps, x, y, nn(ps, 36 * scale), 20, 60, 0.6f, 1.2f, WHITE, (RGB){140, 90, 240}, 0, 1.4f, 1, 1);
+        BURST(ps, x, y, nn(ps, 20 * scale), 2, 10, 1.0f, 1.8f, (RGB){200, 170, 255}, (RGB){30, 10, 70}, -6, 0.4f, 2, 0.6f);
+        break;
+    case BOOM_ATOMIC:
+        BURST(ps, x, y, nn(ps, 50 * scale), 30, 90, 0.5f, 1.0f, (RGB){230, 245, 255}, (RGB){40, 80, 200}, 10, 1.0f, 1, 1);
+        BURST(ps, x, y, nn(ps, 26 * scale), 6, 22, 1.4f, 2.4f, (RGB){170, 200, 230}, (RGB){30, 40, 70}, -12, 0.6f, 2, 0.6f);
+        break;
+    case BOOM_SPORE: {
+        int n = nn(ps, 44 * scale);
+        for (int i = 0; i < n; i++) {
+            float a = U(ps, 0.1f, PI_F - 0.1f), sp = U(ps, 6, 28), life = U(ps, 1.8f, 3.0f);
+            RGB c = R(ps) < 0.5f ? (RGB){190, 255, 220} : (RGB){255, 190, 220};
+            parts_emit(ps, x, y, fcos(a) * sp, fsin(a) * sp, life, life, c, (RGB){40, 90, 70}, -3, 0.9f, 0.85f, false, 1, 0.7f);
+        }
+        break;
+    }
+    case BOOM_ERUPTION:
+        burst(ps, x, y, nn(ps, 56 * scale), 20, 70, 0.8f, 1.6f, (RGB){240, 200, 130}, (RGB){110, 80, 50}, 70, 0.4f, 2, 1, 1.2f, 1.95f, true, 0, false);
+        break;
+    case BOOM_JADE: {
+        int n = nn(ps, 40 * scale);
+        for (int i = 0; i < n; i++) {
+            float a = U(ps, 0.1f, PI_F - 0.1f), sp = U(ps, 14, 50), life = U(ps, 0.7f, 1.4f), pick = R(ps);
+            RGB c = pick < 1 / 3.0f ? (RGB){60, 220, 150} : pick < 2 / 3.0f ? (RGB){250, 214, 120} : (RGB){230, 70, 60};
+            parts_emit(ps, x, y, fcos(a) * sp, fsin(a) * sp, life, life, c, (RGB){14, 60, 40}, 30, 0.6f, 1, false, 1, 0);
+        }
+        break;
+    }
+    case BOOM_ZODIAC: BURST(ps, x, y, nn(ps, 36 * scale), 16, 60, 0.7f, 1.5f, (RGB){255, 240, 190}, (RGB){60, 70, 200}, -4, 0.9f, 1, 1); break;
+    case BOOM_GHOSTFIRE: BURST(ps, x, y, nn(ps, 44 * scale), 10, 40, 0.6f, 1.3f, (RGB){200, 255, 220}, (RGB){20, 90, 50}, -18, 0.6f, 2, 1); break;
     default: break;
     }
 }
 
 static void ambient_one(Particles *ps, int kind, float x, float y, float dt) {
-    float rate = (kind == AMB_FIRE || kind == AMB_BURN) ? 15.0f : kind == AMB_SMOKE ? 7.0f : kind == AMB_PRISM ? 9.0f : 6.0f;
+    float rate = (kind == AMB_FIRE || kind == AMB_BURN) ? 15.0f : kind == AMB_SMOKE ? 7.0f : (kind == AMB_PRISM || kind == AMB_RADIATION) ? 9.0f
+                 : kind == AMB_GHOSTFIRE ? 12.0f : kind == AMB_SAND ? 10.0f : 6.0f;
     if (R(ps) > dt * rate * ps->st->particle_density) return;
     if (kind == AMB_BURN) {
         ambient_one(ps, AMB_FIRE, x, y, 1e9f);
@@ -328,6 +406,18 @@ static void ambient_one(Particles *ps, int kind, float x, float y, float dt) {
     }
     case AMB_VOID: a = U(ps, -6, 6); b = U(ps, 1, 8); c = U(ps, -3, 3); d = U(ps, -2, 4); parts_emit(ps, x + a, y + b, c, d, 1.4f, 1.4f, (RGB){150, 90, 240}, (RGB){10, 4, 24}, 0, 0, 0.7f, false, 2, 0.2f); break;
     case AMB_BUBBLES: a = U(ps, -5, 5); b = U(ps, -2, 2); c = U(ps, 5, 12); parts_emit(ps, x + a, y + 2, b, c, 1.5f, 1.5f, (RGB){190, 235, 255}, (RGB){90, 150, 220}, 0, 0, 0.7f, false, 1, 0.4f); break;
+    /* 2.0 (effects.py _ambient_one) */
+    case AMB_RADIATION: a = U(ps, -5, 5); b = U(ps, 5, 8); c = U(ps, -2, 2); d = U(ps, 8, 18);
+        parts_emit(ps, x + a, y + b, c, d, 0.9f, 0.9f, (RGB){210, 240, 255}, (RGB){40, 80, 170}, -10, 0, 0.9f, false, 1, 0); break;
+    case AMB_SPORES: a = U(ps, -6, 6); b = U(ps, 4, 9); c = U(ps, -3, 3); d = U(ps, 2, 6);
+        parts_emit(ps, x + a, y + b, c, d, 2.6f, 2.6f, (RGB){200, 255, 220}, (RGB){40, 140, 110}, -1.5f, 0, 0.85f, false, 1, 0.7f); break;
+    case AMB_SAND: { float side = R(ps) < 0.5f ? -5.0f : 5.0f; a = U(ps, -1, 1); b = U(ps, 1, 5); c = U(ps, -4, 4); d = U(ps, -2, 4);
+        parts_emit(ps, x + side + a, y + b, c, d, 0.9f, 0.9f, (RGB){226, 190, 120}, (RGB){130, 90, 50}, 40, 0, 0.8f, false, 1, 0); break; }
+    case AMB_FEATHERS: { float pick = R(ps); RGB col = pick < 1 / 3.0f ? (RGB){60, 220, 150} : pick < 2 / 3.0f ? (RGB){40, 170, 210} : (RGB){230, 60, 60};
+        a = U(ps, -5, 5); b = U(ps, -6, 6); c = U(ps, -5, -1);
+        parts_emit(ps, x + a, y + 9, b, c, 2.2f, 2.2f, col, cshade(col, 0.4f), 0, 0, 0.85f, false, 1, 0.9f); break; }
+    case AMB_GHOSTFIRE: a = U(ps, -5, 5); b = U(ps, 2, 5); c = U(ps, -2, 2); d = U(ps, 10, 18);
+        parts_emit(ps, x + a, y + b, c, d, 0.6f, 0.6f, (RGB){200, 255, 220}, (RGB){20, 90, 50}, -16, 0, 0.9f, false, R(ps) < 0.3f ? 2 : 1, 0); break;
     case AMB_PETALS: a = U(ps, -5, 5); b = U(ps, -5, 5); c = U(ps, -6, -1); parts_emit(ps, x + a, y + 8, b, c, 1.8f, 1.8f, (RGB){255, 170, 200}, (RGB){200, 80, 130}, 0, 0, 0.85f, false, 1, 0.8f); break;
     default: break;
     }

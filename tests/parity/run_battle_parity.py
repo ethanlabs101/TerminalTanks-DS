@@ -89,13 +89,22 @@ def same(a, b):
 
 
 def main():
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 6
+    n = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 6
     r = random.Random(7)
     mech = [i for i, a in enumerate(tt.ALL_AMMOS) if a.mech]
+    # `new`: one match per 2.0 mechanic (seek, pierce, mirror, push, delayed clusters, burrow, slither, stars, volley),
+    # both tanks firing it, special-ammo effects on
+    new = [i for i, a in enumerate(tt.ALL_AMMOS) if set(dict(a.mech)) & {"seek", "pierce", "push", "cdelay", "burrow", "slither", "stars", "volley"}
+           or dict(a.mech).get("apex", ("",))[0] == "mirror"]
+    only_new = "new" in sys.argv
+    if only_new:
+        n = len(new)
     fails = 0
     for case in range(n):
         args = (r.randrange(1 << 30), r.choice((0.0, 3.0, 6.0, 10.0)), r.randrange(3), r.randrange(4), r.randrange(len(D)),
                 r.choice(mech), r.randrange(len(D)), r.choice(mech), int(r.random() < 0.8), int(r.random() < 0.3), 30000)
+        if only_new:
+            args = args[:5] + (new[case],) + args[6:7] + (new[case],) + (1,) + args[9:]
         a, b = py_run(*args), c_run(*args)
         ok = len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
         print(f"case {case}: {len(a)} snapshots, {'identical' if ok else 'MISMATCH'}")
