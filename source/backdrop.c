@@ -1040,6 +1040,8 @@ static void l_shards(LCtx *c) {
 }
 
 typedef void (*LayerFn)(LCtx *);
+#include "home_layers2.inc"
+
 static const LayerFn LAYERS[LAYER_COUNT] = {
     [LAYER_TWINSUNS] = l_twinsuns, [LAYER_LANTERNS] = l_lanterns, [LAYER_WORLDTREE] = l_worldtree, [LAYER_WHALE] = l_whale,
     [LAYER_SHARDS] = l_shards, [LAYER_SANCTUM] = l_sanctum, [LAYER_MOON] = l_moon, [LAYER_SUN] = l_sun, [LAYER_CITY] = l_city,
@@ -1047,7 +1049,10 @@ static const LayerFn LAYERS[LAYER_COUNT] = {
     [LAYER_PYRAMIDS] = l_pyramids, [LAYER_TREES] = l_trees, [LAYER_RAIN] = l_rain, [LAYER_LIGHTNING] = l_lightning,
     [LAYER_TOWER] = l_tower, [LAYER_COMET] = l_comet, [LAYER_GLITCH] = l_glitch, [LAYER_VOLCANO] = l_volcano,
     [LAYER_ISLES] = l_isles, [LAYER_RIFTRING] = l_riftring, [LAYER_HOURGLASS] = l_hourglass, [LAYER_SUNBURST] = l_sunburst,
-    [LAYER_ARCANE] = l_arcane};
+    [LAYER_ARCANE] = l_arcane,
+    [LAYER_ABYSS] = l_abyss, [LAYER_SHRINE] = l_shrine, [LAYER_HOLOCITY] = l_holocity, [LAYER_HYPER] = l_hyper, [LAYER_KAIJU] = l_kaiju,
+    [LAYER_SHROOMS] = l_shrooms, [LAYER_WORMSEA] = l_wormsea, [LAYER_JADETEMPLE] = l_jadetemple, [LAYER_ORRERY] = l_orrery,
+    [LAYER_ARMADA] = l_armada};
 
 /* Python seeds random.Random(str) via sha512 of the string; we use a stable FNV hash instead (only the building and
  * tree layouts of a theme depend on it). */
@@ -1200,8 +1205,14 @@ static void thm_draw(Backdrop *b, Term *t, float time) {
             }
         }
     LCtx c = {b, t, cols, LROWS, time, th};
+#ifdef TT_DEBUG_PERF
+    uint32_t l0 = plat_lines();
+#endif
     for (int i = 0; i < th->nlayers; i++)
         if (th->layers[i] < LAYER_COUNT && LAYERS[th->layers[i]]) LAYERS[th->layers[i]](&c);
+#ifdef TT_DEBUG_PERF
+    { char d[32]; snprintf(d, sizeof d, " LAYER %lu MS ", (unsigned long)((plat_lines() - l0) * 6356 / 100000)); term_text(t, 0, T_SPLIT, d, (RGB){255, 255, 0}, &(RGB){0, 0, 0}); }
+#endif
     for (int x = 0; x < cols; x++) {
         int h = b->ridge[x];
         term_fill(t, x, rows - h, 1, h, th->far);
