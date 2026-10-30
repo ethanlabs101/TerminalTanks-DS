@@ -347,10 +347,7 @@ static void shop_draw(Scene *sc, Term *t) {
         else snprintf(buf, sizeof buf, "PRICE  %d \xE2\x97\x89", (int)it->coins);
         term_center(t, 17, buf, owned ? P_OK : GOLD, &P_PANEL, px, PW);
     }
-    fmt_commas(sv->coins, a, sizeof a);
-    fmt_commas(sv->credits, b, sizeof b);
-    snprintf(buf, sizeof buf, "YOU HAVE  %s \xE2\x97\x89  %s \xE2\x97\x88", a, b);
-    term_center(t, 18, buf, P_MUTED, &P_PANEL, px, PW);
+    (void)b;   /* 2.0: the item panel no longer repeats your balance; the wallet stays in the corner */
     bool blink = (int)(tm * 3) % 2 == 0;
     const char *line = NULL;
     RGB lc = P_PRIMARY;

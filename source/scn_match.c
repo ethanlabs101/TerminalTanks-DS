@@ -1177,7 +1177,10 @@ static void rps_draw(Scene *sc, Term *t) {
         snprintf(buf, sizeof buf, "%s   vs   %s", RPS_NAMES[s->picks[0]], RPS_NAMES[s->picks[1]]);
         term_center(t, 20, buf, P_WHITE, &P_PANEL, 0, 51);
         if (s->winner < 0) term_center(t, 21, "IT'S A TIE!", P_AMBER, &P_PANEL, 0, 51);
-        else { snprintf(buf, sizeof buf, "%s WINS!", s->names[s->winner]); term_center(t, 21, buf, P_OK, &P_PANEL, 0, 51); }
+        else {
+            snprintf(buf, sizeof buf, "%s %s!", s->names[s->winner], strcmp(s->names[s->winner], "YOU") ? "WINS" : "WIN");
+            term_center(t, 21, buf, P_OK, &P_PANEL, 0, 51);
+        }
     } else if (s->stage == RPS_CHOOSE) {
         snprintf(buf, sizeof buf, "%s WON", s->names[s->winner]);
         term_center(t, 8, buf, GOLD, &P_PANEL, 0, 51);

@@ -7,7 +7,7 @@
 #include "scenes.h"
 #include "ui.h"
 
-#define VERSION_STR "1.5.0"
+#define VERSION_STR "2.0.1"
 #define CREDIT_NAME "ethanlabs101"
 #define CREDIT_URL "github.com/ethanlabs101"
 static const RGB GOLD = {255, 206, 100};
@@ -525,16 +525,19 @@ Scene *scene_settings(void) { return &NEW(SettingsScn, &SETTINGS_VT)->base; }
 
 /* ================================================================== links (l.12113) */
 typedef struct { Scene base; int row; char msg[64]; float msg_t; } Links;
-static const struct { const char *lab, *url; bool live; } LINKS[6] = {
-    {"SOURCE CODE", "github.com/ethanlabs101/TerminalTanks", true}, {"WEBSITE REPO", "github.com/ethanlabs101/terminaltanks-web", true},
-    {"WEBSITE", "ethanlabs101.github.io/terminaltanks-web", true}, {"ALL PROJECTS", "github.com/ethanlabs101", true},
-    {"ITCH.IO", "COMING SOON", false}, {"STEAM", "COMING SOON", false}};
+/* 2.0.1 LinksScene, in its order */
+#define N_LINKS 8
+static const struct { const char *lab, *url; bool live; } LINKS[N_LINKS] = {
+    {"WEBSITE", "ethanlabs101.github.io/terminaltanks-site", true}, {"ITCH.IO", "ethanlabs101.itch.io/terminal-tanks", true},
+    {"TRAILER", "youtu.be/fp_Ca-Zxc98", true}, {"SOURCE CODE", "github.com/ethanlabs101/TerminalTanks", true},
+    {"WEBSITE REPO", "github.com/ethanlabs101/terminaltanks-site", true}, {"DS PORT", "github.com/ethanlabs101/TerminalTanks-DS", true},
+    {"ALL PROJECTS", "github.com/ethanlabs101", true}, {"STEAM", "COMING SOON", false}};
 static void links_handle(Scene *s, const IEv *e) {
     Links *l = (Links *)s;
     if (e->action == A_BACK) { app_goto(scene_menu()); return; }
-    if (e->action == A_UP) l->row = (l->row + 5) % 6;
-    else if (e->action == A_DOWN) l->row = (l->row + 1) % 6;
-    else if (ev_confirm(e) || (e->action == A_TOUCH && e->raw >= 10 && e->raw < 16)) {
+    if (e->action == A_UP) l->row = (l->row + N_LINKS - 1) % N_LINKS;
+    else if (e->action == A_DOWN) l->row = (l->row + 1) % N_LINKS;
+    else if (ev_confirm(e) || (e->action == A_TOUCH && e->raw >= 10 && e->raw < 10 + N_LINKS)) {
         if (e->action == A_TOUCH) l->row = e->raw - 10;
         /* the DS has no web browser to hand the address to: show it for typing elsewhere */
         snprintf(l->msg, sizeof l->msg, "%s", LINKS[l->row].live ? "NO BROWSER ON THE DS - TYPE THE ADDRESS" : "NOT LIVE YET - CHECK BACK SOON");
@@ -553,8 +556,8 @@ static void links_draw(Scene *s, Term *t) {
     term_box(t, x, y, W, 26, TB_DOUBLE, P_LINE, P_PANEL, "TERMINAL TANKS \xC2\xB7 FIND US", P_PRIMARY);
     term_center(t, y + 2, "Free, open source and built by one developer.", P_TEXT, &P_PANEL, x, W);
     term_center(t, y + 3, "Play it, read it, fork it, share it.", P_MUTED, &P_PANEL, x, W);
-    for (int i = 0; i < 6; i++) {
-        int ry = y + 7 + i * 3;
+    for (int i = 0; i < N_LINKS; i++) {
+        int ry = y + 5 + i * 2 + (i >= 3);                             /* the play links, a gap, then the code */
         bool sel = i == l->row;
         RGB bg = sel ? P_PANEL_HI : P_PANEL;
         term_fill(t, x + 2, ry, W - 4, 2, bg);

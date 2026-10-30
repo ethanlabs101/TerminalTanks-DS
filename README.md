@@ -1,8 +1,8 @@
 # Terminal Tanks DS
 
-A native Nintendo DS port of **Terminal Tanks v1.5.0** (`terminaltanks.py`, by ethanlabs101): the turn-based
-terminal artillery game, rewritten in C for the DS with the BlocksDS SDK. The original Python file is kept,
-unmodified, in `reference/terminaltanks.py` and is the source of truth for every rule, table and number.
+A native Nintendo DS port of **Terminal Tanks v2.0.1** (by ethanlabs101): the turn-based terminal artillery game,
+rewritten in C for the DS with the BlocksDS SDK. The original game (`terminaltanks.py` and its `tanks/` package) is
+kept, unmodified, in `reference/` and is the source of truth for every rule, table and number.
 
 ```
 terminaltanks.nds      the ROM (build it with `make`, see docs/BUILDING.md)
@@ -18,8 +18,9 @@ docs/                  spec, architecture, controls, building, testing, parity, 
 
 | Area | State | Evidence |
 |---|---|---|
-| Simulation (terrain, ballistics, wind, every ammo mechanic, UFOs, specials, Blessing, AI) | ported, value-for-value | `tests/parity`: the C core is bit-exact with Python on Linux (world+shot 300/300, AI 24/24, whole AI-vs-AI matches 6/6); the DS build's correctly rounded math gives 298/300, 24/24, 6/6, and a self-test ROM shows the ARM9 computes exactly what the PC does (86/86) |
-| All content (113 tanks, 113 ammo + 18 Martyr ammo, 137 maps, 90 home screens, 266 shop items, 20 levels, 50 missions, 10 tickets, 24 cheats, 466 unlockables) | generated from the Python objects | `tools/gen_content.py` |
+| Simulation (terrain, ballistics, wind, every ammo mechanic incl. the 2.0 ones, UFOs, specials, Blessing, AI) | ported, value-for-value | `tests/parity` against PC 2.0.1: world+shot 300/300, AI 24/24, whole AI-vs-AI matches 6/6, plus one match per 2.0 mechanic 10/10 (`run_battle_parity.py new`) |
+| All content (123 tanks, 123 ammo + 18 Martyr ammo, 147 maps, 100 home screens, 12 animated paints, 314 shop items, 20 levels, 50 missions, 10 tickets, 24 cheats, 514 unlockables) | generated from the Python objects | `tools/gen_content.py` |
+| Saves from Terminal Tanks DS 1.5.0 | migrated by name | `tests/save_migration/run.sh`: 200/200 random 1.5.0 saves load identical by name; the original is kept as `<profile>.sav.v1.bak` |
 | Every scene of the original (title → menus → battle → results, tournament, missions, co-op, shop, workshop + studio, tickets, Martyr, cinematics, profiles, tutorial/practice, settings, cheats, links, LAN) | ported | every main-menu screen rendered in melonDS (`tests/harness/tour.py`); single-player and tournament battles played in the emulator; tickets, the Martyr, cinematics and the studio were not reached in emulator runs |
 | Local wireless, two DS consoles, no router | working in emulation | `tests/harness/run_lan_versus.py`: host, join, RPS, ~30 shots across 2 rounds, identical state hashes on both consoles |
 | Saves (3 profiles) on the SD/flashcart FAT | working in emulation | profile written to an emulated SD card and read back after a reboot |

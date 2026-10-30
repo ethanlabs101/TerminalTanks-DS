@@ -67,6 +67,13 @@ nothing is verified on hardware (see `TESTING.md`).
     card. PC save files cannot be imported, so the original's v1–v3 save migrations are not needed.
 13. *LAN* uses DS local wireless instead of TCP/UDP; same messages and semantics (`MULTIPLAYER.md`).
 
+**The ten 2.0 home screens (Biolume Trench .. Ghost Armada)** are drawn exactly as the original's half-block pixel
+layers, with these DS shortcuts to stay within ~20-45 ms a redraw on the ARM9 (no FPU): parts of each scene that do not
+move are cached as per-pixel affine stamps; the Biolume Trench's god-rays keep their rest positions (their brightness
+still breathes) and its jellyfish trail five tendrils instead of ten; the Tesseract's nebula, the Jade Temple's sun
+disc, the Deep Desert's far dunes and the Holo City's window lights are frozen at rest (they drift over minutes on the
+PC); the Glowshroom Grove's stems and caps are at rest and mid-glow (their gills and spots still pulse).
+
 **Busy home screens (after testing on a real DS)**
 17. *Master*: one aurora band instead of three, no golden god-rays, fewer embers. *Eternal*: the sanctum keeps the
     mage, the artifact and the three orbiting orbs, but drops the rune column and the 36-rune ring. Every themed

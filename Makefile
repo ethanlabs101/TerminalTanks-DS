@@ -9,7 +9,7 @@ ARM_NONE_EABI_PATH  ?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 
 NAME        := terminaltanks
 GAME_TITLE  := Terminal Tanks DS
-GAME_SUB    := v1.5.0 port
+GAME_SUB    := v2.0 port
 GAME_AUTHOR := ethanlabs101
 GAME_ICON   := assets/icon.bmp
 
