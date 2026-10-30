@@ -128,10 +128,13 @@ bool app_load_profile_save(int idx, SaveData *out) {
     int n = plat_load(f, g_iobuf, sizeof g_iobuf);
     if (n <= 0) return false;
     if (!save_deserialize(out, g_iobuf, n)) {
+        /* never lose a save we cannot read: keep its bytes before anything is written over it */
+        bool kept = plat_backup(f, "bak", g_iobuf, n);
         save_new(out);
-        snprintf(out->warning, sizeof out->warning, "SAVE FILE DAMAGED - STARTED FRESH");
+        snprintf(out->warning, sizeof out->warning, kept ? "UNREADABLE SAVE KEPT AS %s.bak" : "SAVE FILE DAMAGED - STARTED FRESH", f);
         return false;
     }
+    if (out->loaded_version == 1) plat_backup(f, "v1.bak", g_iobuf, n);   /* the 1.5.0 original, kept after migrating */
     return true;
 }
 

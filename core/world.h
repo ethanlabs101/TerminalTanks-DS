@@ -103,7 +103,7 @@ typedef struct { Impact impact; double time; } TraceResult;
 /* Scenery draws that consume the simulation rng (kept so the sequence matches the original exactly). */
 typedef struct { uint8_t x, py; float ph, sp, b; } Star;
 typedef struct { float x0, y0, sp, ph, amp; uint8_t ci; } Mote;
-#define MAX_STARS 480
+#define MAX_STARS 512
 #define MAX_MOTES 128
 #define MAX_STREAKS 24
 

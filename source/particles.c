@@ -333,10 +333,10 @@ static void ambient_one(Particles *ps, int kind, float x, float y, float dt) {
     }
 }
 
-void fx_ambient(Particles *ps, uint32_t mask, float x, float y, RGB body, float dt) {
+void fx_ambient(Particles *ps, uint64_t mask, float x, float y, RGB body, float dt) {
     (void)body;
     for (int k = 0; k < AMB_COUNT; k++) {
-        if (!(mask & (1u << k))) continue;
+        if (!(mask & (1ull << k))) continue;
         if (k == AMB_NONE || k == AMB_SPARKLE || k == AMB_ORBIT || k == AMB_LIGHTNING) continue;
         ambient_one(ps, k, x, y, dt);
     }

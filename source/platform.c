@@ -208,6 +208,18 @@ int plat_load(const char *name, uint8_t *buf, int cap) {
     return n;
 }
 
+bool plat_backup(const char *name, const char *suffix, const uint8_t *buf, int len) {
+    if (!g_fat || g_read_only || len <= 0) return false;
+    char path[96];
+    snprintf(path, sizeof path, "/data/TerminalTanks/%s.%s", name, suffix);
+    FILE *f = fopen(path, "rb");
+    if (f) { fclose(f); return true; }          /* the first backup is the one that matters */
+    f = fopen(path, "wb");
+    if (!f) return false;
+    bool ok = fwrite(buf, 1, (size_t)len, f) == (size_t)len;
+    return fclose(f) == 0 && ok;
+}
+
 bool plat_save(const char *name, const uint8_t *buf, int len) {
     if (!g_fat || g_read_only || len < 0 || len > SLOT_SIZE - SLOT_HDR) return false;
     SlotState *st = slot_state(name);

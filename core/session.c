@@ -312,12 +312,15 @@ void session_init_ticket(Session *s, int ticket, const Loadout *lo, uint32_t see
     base_init(s, -1, seed);
 }
 
-static const int MARTYR_MAGE_HP[3] = {250, 200, 260};
-static const int MARTYR_MAGE_MULT[3] = {4, 5, 6};
+/* 2.0 balance (reference/tanks/content/martyr.py) */
+static const int MARTYR_PLAYER_HP_BY_PHASE[3] = {175, 175, 200};
+static const int MARTYR_MAGE_HP[3] = {340, 525, 550};
+static const int MARTYR_MAGE_MULT[3] = {8, 5, 6};
 static const double MARTYR_PREC[3] = {0.8, 0.68, 0.55};
 
 static void set_mage(Session *s) {
     int p = s->phase_i < 2 ? s->phase_i : 2;
+    s->players[0].hp = MARTYR_PLAYER_HP_BY_PHASE[p];
     s->players[1].hp = MARTYR_MAGE_HP[p];
     s->players[1].prec = MARTYR_PREC[p];
 }
@@ -326,7 +329,8 @@ void session_init_martyr(Session *s, const Loadout *lo, int phase, bool replay, 
     config_defaults(s);
     s->type = SESS_MARTYR;
     int ph = replay ? 0 : (phase < 2 ? phase : 2);
-    player_setup_init(&s->players[0], "PLAYER", "YOU", paint_rgb(lo->tank_color), paint_rgb(lo->shot_color), false, lo->tank, lo->ammo, 175);
+    player_setup_init(&s->players[0], "PLAYER", "YOU", paint_rgb(lo->tank_color), paint_rgb(lo->shot_color), false, lo->tank, lo->ammo,
+                      MARTYR_PLAYER_HP_BY_PHASE[ph]);
     s->players[0].team = 0;
     player_setup_init(&s->players[1], "THE MARTYR", "MAGE", (RGB){190, 150, 255}, (RGB){255, 240, 170}, true, DESIGN_A_MARTYR, AMMO_TIMERIFT,
                       MARTYR_MAGE_HP[ph]);

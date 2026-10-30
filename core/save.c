@@ -2,6 +2,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "save.h"
+#include "save_legacy.h"
 
 /* ------------------------------------------------------------------ uid caches (built lazily) */
 static int16_t g_design_uid[N_DESIGNS], g_ammo_uid[N_AMMOS], g_map_uid[N_MAPS_ALL], g_home_uid[N_HOME];
@@ -120,7 +121,7 @@ void custom_register(int slot, const CustomTank *ct) {
     d->mask = g_custom_mask[slot];
     d->barrel = ct->barrel < BARREL_COUNT ? ct->barrel : 0;
     d->glow = ct->glow < GLOW_COUNT ? ct->glow : 0;
-    d->ambient = ct->ambient ? ct->ambient : 1u;
+    d->ambient = ct->ambient ? ct->ambient : 1ull;
     d->accent = ct->accent < N_COLORS ? COLOR_CHOICES[ct->accent].c : (RGB){236, 242, 250};
     d->has_paint = 0;
     d->turret = (int8_t)t; d->hull = (int8_t)h; d->track = (int8_t)k;
@@ -508,7 +509,7 @@ bool redeem_cheat(SaveData *s, const char *code, char *msg, int n, int *activate
 
 /* ------------------------------------------------------------------ serialisation */
 #define SAVE_MAGIC 0x53445454u   /* "TTDS" */
-#define SAVE_VERSION 1
+#define SAVE_VERSION 2      /* 2: Terminal Tanks DS 2.0 (version 1 = DS 1.5.0, migrated on load) */
 
 typedef struct { uint8_t *b; int n, cap; bool ok; } W;
 static void wbytes(W *w, const void *p, int n) {
@@ -556,6 +557,9 @@ static void r_rules(R *r, Rules *x) {
     if (x->map < -1 || x->map >= N_MAPS_ALL) x->map = -1;
 }
 
+/* old position -> new position (out-of-range or vanished -> -1; callers sanitise) */
+static int legacy_map(const short *tab, int n, int i) { return i >= 0 && i < n ? tab[i] : -1; }
+
 int save_serialize(const SaveData *s, uint8_t *buf, int cap) {
     W w = {buf, 0, cap, true};
     wu32(&w, SAVE_MAGIC);
@@ -587,7 +591,7 @@ int save_serialize(const SaveData *s, uint8_t *buf, int cap) {
         if (!c->used) continue;
         wstr(&w, c->id, 12); wstr(&w, c->name, 16); wstr(&w, c->lore, 64);
         wu8(&w, c->turret); wu8(&w, c->hull); wu8(&w, c->track); wu8(&w, c->barrel); wu8(&w, c->glow); wu8(&w, c->accent);
-        wu32(&w, c->ambient); wu8(&w, c->hover);
+        wu64(&w, c->ambient); wu8(&w, c->hover);
     }
     if (!w.ok) return -1;
     uint32_t h = checksum(buf, w.n);
@@ -604,11 +608,22 @@ bool save_deserialize(SaveData *s, const uint8_t *buf, int len) {
     if (ru32(&r) != SAVE_MAGIC) { snprintf(s->warning, sizeof s->warning, "not a save file - starting fresh"); return false; }
     int ver = (int)ru16(&r);
     int nuids = (int)ru16(&r);
-    if (ver != SAVE_VERSION || nuids != N_UIDS) { snprintf(s->warning, sizeof s->warning, "save from another version - fresh start"); return false; }
+    bool v1 = ver == 1 && nuids == LEGACY_V1_N_UID;            /* DS 1.5.0: positions are remapped by name below */
+    if (!v1 && (ver != SAVE_VERSION || nuids != N_UIDS)) { snprintf(s->warning, sizeof s->warning, "save from another version - fresh start"); return false; }
     SaveData t;
     save_new(&t);
     t.completed = ru32(&r) & ((1u << N_LEVELS) - 1);
-    rbytes(&r, t.granted, sizeof t.granted);
+    if (v1) {
+        uint8_t old[(LEGACY_V1_N_UID + 7) / 8];
+        rbytes(&r, old, sizeof old);
+        for (int u = 0; u < LEGACY_V1_N_UID; u++)
+            if ((old[u >> 3] >> (u & 7)) & 1) {
+                int nu = LEGACY_V1_UID[u];
+                if (nu >= 0 && nu < N_UIDS) setbit(t.granted, nu);
+            }
+    } else {
+        rbytes(&r, t.granted, sizeof t.granted);
+    }
     t.mission_completed = ru64(&r) & ((1ull << N_MISSIONS) - 1);
     t.mission_paid = ru64(&r) & ((1ull << N_MISSIONS) - 1);
     t.tickets_won = (uint16_t)(ru16(&r) & ((1u << N_TICKETS) - 1));
@@ -626,22 +641,62 @@ bool save_deserialize(SaveData *s, const uint8_t *buf, int len) {
     for (int i = 0; i < 2; i++) {
         t.loadouts[i].tank = (int16_t)ru16(&r); t.loadouts[i].tank_color = (uint8_t)ru8(&r);
         t.loadouts[i].ammo = (int16_t)ru16(&r); t.loadouts[i].shot_color = (uint8_t)ru8(&r);
+        if (v1) {
+            t.loadouts[i].tank = legacy_map(LEGACY_V1_DESIGN, LEGACY_V1_N_DESIGN, t.loadouts[i].tank);
+            t.loadouts[i].ammo = legacy_map(LEGACY_V1_AMMO, LEGACY_V1_N_AMMO, t.loadouts[i].ammo);
+        }
     }
     Settings *st = &t.settings;
     st->difficulty = (int)(ru8(&r) % 4); st->anim_speed = rdbl(&r); st->effects = ru8(&r); st->trail_life = rdbl(&r);
     st->particle_density = rdbl(&r); st->aim_guide = (int)(ru8(&r) % 3); st->random_maps = ru8(&r); st->sound = ru8(&r);
     st->wind = rdbl(&r); st->home_mode = (int)ru8(&r);
+    if (v1) st->home_mode = legacy_map(LEGACY_V1_HOME, LEGACY_V1_N_HOME, st->home_mode);
+    if (st->home_mode < 0) st->home_mode = HOME_CLASSIC;
     if (st->home_mode >= N_HOME) st->home_mode = HOME_CLASSIC;
     if (!(st->anim_speed > 0.1 && st->anim_speed < 4)) st->anim_speed = 1.0;
     if (!(st->wind >= 0 && st->wind <= 10)) st->wind = 6.0;
-    for (int i = 0; i < 3; i++) { t.has_rules[i] = ru8(&r); r_rules(&r, &t.rules[i]); }
+    for (int i = 0; i < 3; i++) {
+        t.has_rules[i] = ru8(&r);
+        if (v1) {                       /* the stored map index is a 1.5.0 position */
+            Rules *x = &t.rules[i];
+            x->best = ru8(&r); x->n_idx = (uint8_t)(ru8(&r) % 5); x->n_custom = (uint8_t)ru8(&r); x->hp_idx = (uint8_t)(ru8(&r) % 6);
+            x->hp_custom = (uint8_t)ru8(&r);
+            int m = (int16_t)ru16(&r);
+            x->map = (int16_t)(m < 0 ? -1 : legacy_map(LEGACY_V1_MAP, LEGACY_V1_N_MAP, m));
+            x->wind = ru8(&r); x->special = ru8(&r); x->ammo_fx = ru8(&r); x->pick_maps = ru8(&r); x->blessing = ru8(&r);
+            if (x->n_custom < 1) x->n_custom = 1;
+            if (x->n_custom > 25) x->n_custom = 25;
+            if (x->hp_custom < 1) x->hp_custom = 1;
+            if (x->hp_custom > 50) x->hp_custom = 50;
+            if (x->map < -1 || x->map >= N_MAPS_ALL) x->map = -1;
+        } else {
+            r_rules(&r, &t.rules[i]);
+        }
+    }
     for (int i = 0; i < CUSTOM_TANK_MAX && r.ok; i++) {
         CustomTank *c = &t.custom[i];
         c->used = ru8(&r);
         if (!c->used) continue;
         rstr(&r, c->id, 12); rstr(&r, c->name, 16); rstr(&r, c->lore, 64);
         c->turret = (uint8_t)ru8(&r); c->hull = (uint8_t)ru8(&r); c->track = (uint8_t)ru8(&r); c->barrel = (uint8_t)ru8(&r);
-        c->glow = (uint8_t)ru8(&r); c->accent = (uint8_t)ru8(&r); c->ambient = ru32(&r); c->hover = ru8(&r);
+        c->glow = (uint8_t)ru8(&r); c->accent = (uint8_t)ru8(&r);
+        c->ambient = v1 ? ru32(&r) : ru64(&r);
+        c->hover = ru8(&r);
+        if (v1) {
+            c->turret = (uint8_t)legacy_map(LEGACY_V1_TURRET, LEGACY_V1_N_TURRET, c->turret);
+            c->hull = (uint8_t)legacy_map(LEGACY_V1_HULL, LEGACY_V1_N_HULL, c->hull);
+            c->track = (uint8_t)legacy_map(LEGACY_V1_TRACK, LEGACY_V1_N_TRACK, c->track);
+            c->barrel = (uint8_t)legacy_map(LEGACY_V1_BARREL, LEGACY_V1_N_BARREL, c->barrel);
+            c->glow = (uint8_t)legacy_map(LEGACY_V1_GLOW, LEGACY_V1_N_GLOW, c->glow);
+            c->accent = (uint8_t)legacy_map(LEGACY_V1_COLOR, LEGACY_V1_N_COLOR, c->accent);
+            uint64_t a = 0;
+            for (int k = 0; k < LEGACY_V1_N_AMB; k++)
+                if ((c->ambient >> k) & 1) {
+                    int nk = LEGACY_V1_AMB[k];
+                    if (nk >= 0) a |= 1ull << nk;
+                }
+            c->ambient = a;
+        }
     }
     if (!r.ok) { snprintf(s->warning, sizeof s->warning, "save file truncated - starting fresh"); return false; }
     /* chain rule (l.4999): a level / mission only counts if it was reachable */
@@ -659,6 +714,7 @@ bool save_deserialize(SaveData *s, const uint8_t *buf, int len) {
     t.mission_completed = okm;
     t.mission_paid |= okm;
     for (int u = N_UNLOCKABLES; u < N_UIDS; u++) t.granted[u >> 3] &= (uint8_t)~(1u << (u & 7));
+    t.loaded_version = (uint8_t)ver;
     *s = t;
     save_refresh(s);
     if (s->martyr_won) for (int i = 0; i < N_MARTYR_REWARDS; i++) setbit(s->granted, MARTYR_REWARDS[i]);

@@ -41,13 +41,13 @@ static void draft_new(Workshop *s) {
     snprintf(s->draft.lore, sizeof s->draft.lore, "Built in the workshop.");
     s->draft.accent = (uint8_t)color_index_by_name("WHITE");
     s->amb = AMB_NONE;
-    s->draft.ambient = 1u << AMB_NONE;
+    s->draft.ambient = 1ull << AMB_NONE;
 }
 static void sync_draft(Workshop *s) {
     if (s->load > 0 && s->load <= nsaved()) {
         s->draft = g_app.save.custom[s->load - 1];
         s->amb = 0;
-        for (int k = 0; k < AMB_COUNT; k++) if (s->draft.ambient & (1u << k)) { s->amb = k; break; }
+        for (int k = 0; k < AMB_COUNT; k++) if (s->draft.ambient & (1ull << k)) { s->amb = k; break; }
     }
 }
 static int slot_value(const Workshop *s, int slot) {
@@ -68,7 +68,7 @@ static void slot_set(Workshop *s, int slot, int v) {
     case SLOT_TRACK: s->draft.track = (uint8_t)v; break;
     case SLOT_BARREL: s->draft.barrel = (uint8_t)v; break;
     case SLOT_GLOW: s->draft.glow = (uint8_t)v; break;
-    case SLOT_AMBIENT: s->amb = v; s->draft.ambient = 1u << v; break;
+    case SLOT_AMBIENT: s->amb = v; s->draft.ambient = 1ull << v; break;
     default: s->draft.accent = (uint8_t)v; break;
     }
 }

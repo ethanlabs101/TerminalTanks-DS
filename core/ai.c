@@ -72,7 +72,15 @@ static Impact shoot(AIController *ai, double rel, double power, double g_scale) 
     double ang = me->facing > 0 ? rel : 180 - rel;
     double ox, oy;
     tank_muzzle(me, ang, &ox, &oy);
-    Launch L = phys_make_launch(ai->w, ox, oy, ang, power, PHYS_GRAVITY * g_scale, ai->ctx_wind);
+    /* 2.0: the AI models its own ammo's gravity, wind and speed (only while special-ammo effects are on) */
+    const AmmoType *M = ai->w->ammo_fx ? &AMMOS[me->ammo] : NULL;
+    double mg = M && (M->mf & MF_G) ? M->g : 1.0, mw = M && (M->mf & MF_WIND) ? M->wind : 1.0;
+    double ms = M && (M->mf & MF_SPEED) ? M->speed : 1.0;
+    Launch L = phys_make_launch(ai->w, ox, oy, ang, power, PHYS_GRAVITY * g_scale * mg, ai->ctx_wind * mw);
+    if (ms != 1.0) {
+        L.vx = L.vx * ms;
+        L.vy = L.vy * ms;
+    }
     if (L.wa != 0.0) return phys_trace(&L, model_probe, ai, ai->p.sim_dt, 10.0).impact;
     return fast_trace(ai, &L);
 }

@@ -29,7 +29,7 @@ ELF      := build/$(NAME).elf
 MAP      := build/$(NAME).map
 ROM      := $(NAME).nds
 
-SOURCES := $(wildcard core/*.c) core/gen/content_data.c $(wildcard source/*.c) $(wildcard source/gen/*.c)
+SOURCES := $(wildcard core/*.c) core/gen/content_data.c core/gen/legacy_v1.c $(wildcard source/*.c) $(wildcard source/gen/*.c)
 OBJS    := $(addprefix $(BUILDDIR)/,$(SOURCES:.c=.o))
 DEPS    := $(OBJS:.o=.d)
 
@@ -62,11 +62,11 @@ $(BUILDDIR)/%.o: %.c
 
 host-tests:
 	@mkdir -p build/host
-	gcc -std=c11 -O2 -ffp-contract=off -Wno-format-truncation -o build/host/probe tests/parity/probe.c core/*.c core/gen/content_data.c -lm
-	gcc -std=c11 -O2 -ffp-contract=off -Wno-format-truncation -DTT_XMATH -o build/host/probe_xmath tests/parity/probe.c core/*.c core/gen/content_data.c -lm
+	gcc -std=c11 -O2 -ffp-contract=off -Wno-format-truncation -o build/host/probe tests/parity/probe.c core/*.c core/gen/content_data.c core/gen/legacy_v1.c -lm
+	gcc -std=c11 -O2 -ffp-contract=off -Wno-format-truncation -DTT_XMATH -o build/host/probe_xmath tests/parity/probe.c core/*.c core/gen/content_data.c core/gen/legacy_v1.c -lm
 
 # DS self-test ROM: the parity probe on the ARM9 (tests/ds_selftest; generate cases.h with gen_cases.py first)
-ST_SOURCES := $(wildcard core/*.c) core/gen/content_data.c tests/ds_selftest/main.c
+ST_SOURCES := $(wildcard core/*.c) core/gen/content_data.c core/gen/legacy_v1.c tests/ds_selftest/main.c
 ST_OBJS    := $(addprefix build/st/,$(ST_SOURCES:.c=.o))
 selftest: build/selftest.nds
 build/selftest.nds: $(ST_OBJS)

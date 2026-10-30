@@ -29,7 +29,7 @@ typedef struct {
     char name[16];
     char lore[64];
     uint8_t turret, hull, track, barrel, glow, accent;
-    uint32_t ambient;     /* AMB_* bitmask */
+    uint64_t ambient;     /* AMB_* bitmask */
     bool hover;
     bool used;
 } CustomTank;
@@ -74,6 +74,7 @@ typedef struct {
     bool martyr_paid, martyr_won, martyr_seen, martyr_open;
     uint8_t martyr_phase;
     uint16_t story;
+    uint8_t loaded_version;             /* format the save was read from (0: new save); 1 = migrated from DS 1.5.0 */
     double playtime;
     int32_t coins, credits;
     Loadout loadouts[2];

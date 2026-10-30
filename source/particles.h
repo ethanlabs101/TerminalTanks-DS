@@ -36,7 +36,7 @@ void fx_trail(Particles *ps, float x, float y, RGB accent, int trail_style, int 
 void fx_muzzle(Particles *ps, float x, float y, float angle, RGB accent);
 void fx_smoke(Particles *ps, float x, float y, int n, float spread, const RGB *tint);
 void fx_impact(Particles *ps, float x, float y, RGB accent, RGB soil, float scale, int boom_style);
-void fx_ambient(Particles *ps, uint32_t ambient_mask, float x, float y, RGB body, float dt);
+void fx_ambient(Particles *ps, uint64_t ambient_mask, float x, float y, RGB body, float dt);
 void fx_debris(Particles *ps, float x, float y, RGB color);
 /* per-frame wreck / low-health smoke (world.update_effects) */
 void fx_world_tick(Particles *ps, const World *w, float dt);

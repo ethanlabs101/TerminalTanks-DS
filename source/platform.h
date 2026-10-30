@@ -30,6 +30,8 @@ void plat_input(Input *in);
 /* storage: a small file per profile on the SD/flashcart (FAT via DLDI). Returns false when unavailable. */
 bool plat_storage_ok(void);
 int  plat_load(const char *name, uint8_t *buf, int cap);       /* bytes read or -1 */
+/* writes /data/TerminalTanks/<name>.<suffix> once: an existing backup is never overwritten */
+bool plat_backup(const char *name, const char *suffix, const uint8_t *buf, int len);
 bool plat_save(const char *name, const uint8_t *buf, int len);
 
 /* sound: short square-wave beeps (the original's optional terminal bell) */

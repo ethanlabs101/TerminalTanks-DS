@@ -18,7 +18,7 @@ typedef struct {
     const char *key, *name, *blurb;
     const char *mask;     /* 66 chars: 6 rows x 11 columns, row 0 = top */
     uint8_t barrel, glow;
-    uint32_t ambient;     /* bitmask of AMB_* */
+    uint64_t ambient;     /* bitmask of AMB_* */
     RGB accent;
     uint8_t has_paint;
     RGB paint;
@@ -31,10 +31,13 @@ enum {
     MF_G = 1 << 0, MF_WIND = 1 << 1, MF_SPEED = 1 << 2, MF_RADIUS = 1 << 3, MF_BR = 1 << 4, MF_SUBR = 1 << 5,
     MF_CSPACE = 1 << 6, MF_CR = 1 << 7, MF_CSTEP = 1 << 8, MF_FUSE = 1 << 9, MF_FR = 1 << 10, MF_PULL = 1 << 11,
     MF_BOUNCE = 1 << 12, MF_CLUSTER = 1 << 13, MF_CHAIN = 1 << 14, MF_DMG = 1 << 15, MF_MULTI = 1 << 16,
-    MF_WOB = 1 << 17, MF_TERRAIN = 1 << 18, MF_APEX = 1 << 19
+    MF_WOB = 1 << 17, MF_TERRAIN = 1 << 18, MF_APEX = 1 << 19,
+    /* 2.0 mechanics */
+    MF_SEEK = 1 << 20, MF_PIERCE = 1 << 21, MF_PSTEP = 1 << 22, MF_PUSH = 1 << 23, MF_CDELAY = 1 << 24, MF_BURROW = 1 << 25,
+    MF_SLITHER = 1 << 26, MF_STARS = 1 << 27, MF_VOLLEY = 1 << 28
 };
 enum { TERR_BLAST = 0, TERR_MOUND, TERR_TRENCH, TERR_GLASS, TERR_FX };
-enum { APEX_NONE = 0, APEX_SPLIT, APEX_JUMP };
+enum { APEX_NONE = 0, APEX_SPLIT, APEX_JUMP, APEX_MIRROR };
 
 typedef struct {
     const char *key, *name, *blurb;
@@ -42,6 +45,8 @@ typedef struct {
     uint32_t mf;          /* MF_* presence flags: mf == 0 means a plain (cosmetic) shell */
     double g, wind, speed, radius, br, subr, cspace, cr, cstep, fuse, fr, pull, wob_a, wob_f, apex_v;
     uint8_t bounce, cluster, chain, dmg, multi, terrain, apex_kind, apex_n;
+    double seek, pstep, push, cdelay, burrow;      /* 2.0 */
+    uint8_t pierce, slither, stars, volley;
 } AmmoType;
 
 typedef struct { const char *name; RGB color; } ElemInfo;

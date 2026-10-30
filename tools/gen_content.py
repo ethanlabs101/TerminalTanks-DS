@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates core/gen/content_enums.h and core/gen/content_data.c from the ORIGINAL terminaltanks.py.
+"""Generates core/gen/content_enums.h and core/gen/content_data.c from the ORIGINAL PC game in reference/ (2.0.x: terminaltanks.py + tanks/).
 
 Every table the C port uses (tanks, ammo, maps, themes, home screens, tournament, missions, tickets, shop, cheats,
 unlockables, parts, palettes) comes from the live Python objects, so the native data can never drift from the
@@ -77,21 +77,28 @@ GLOW = enum("GLOW_NAMES", list(tt.GLOW_STYLES), "GLOW")
 AMB = enum("AMBIENT_NAMES", list(tt.AMBIENT_KINDS), "AMB")
 BARRELS = list(tt.BARRELS)
 BAR = enum("BARREL_NAMES", BARRELS, "BARREL")
-FX = enum("FX_NAMES", ["", "embers", "motes", "snow", "fireflies", "ash", "stardust", "inferno", "tempest", "rift", "storm"], "FX")
-BLD = enum("BUILDING_NAMES", [""] + list(tt.BUILDING_STYLES), "BLD")
+_OLD_FX = ["embers", "motes", "snow", "fireflies", "ash", "stardust", "inferno", "tempest", "rift", "storm"]
+_ALL_FX = {m.theme.fx for m in list(tt.MAPS) + list(tt.SPECIAL_MAPS) if m.theme.fx}
+FX = enum("FX_NAMES", [""] + _OLD_FX + sorted(_ALL_FX - set(_OLD_FX)), "FX")
+_OLD_BLD = ["skyline", "clock", "cathedral", "temple", "ruins", "pyramids", "factory", "castle", "station", "pagoda", "volcano", "isles", "rift"]
+_ALL_BLD = {m.theme.buildings for m in list(tt.MAPS) + list(tt.SPECIAL_MAPS) if m.theme.buildings}
+BLD = enum("BUILDING_NAMES", [""] + _OLD_BLD + sorted(_ALL_BLD - set(_OLD_BLD)), "BLD")
 LAYERS = enum("LAYER_NAMES", list(tt.LAYER_DRAWERS), "LAYER")
 TURRETS, HULLS, TRACKS = list(tt._TURRETS), list(tt._HULLS), list(tt._TRACKS)
 enum("TURRET_NAMES", TURRETS, "TUR")
 enum("HULL_NAMES", HULLS, "HUL")
 enum("TRACK_NAMES", TRACKS, "TRK")
-assert len(AMB) <= 32
+assert len(AMB) <= 64
 
 # ---- parts (2 rows of 11 each) ----------------------------------------------------------------------------------
 for nm, tab in (("TURRET_ROWS", tt._TURRETS), ("HULL_ROWS", tt._HULLS), ("TRACK_ROWS", tt._TRACKS)):
     C(f"const char *const {nm}[{len(tab)}] = {{" + ", ".join(cstr("".join(r)) for r in tab.values()) + "};")
     H(f"extern const char *const {nm}[{len(tab)}];")
 C("const BarrelSpec BARRELS[%d] = {" % len(BARRELS))
-STYLE_IDX = {"plain": 0, "rail": 1, "coil": 2, "prism": 3, "crystal": 4, "flame": 5, "spin": 6, "void": 7, "bolt": 8, "rune": 9}
+_OLD_STY = ["plain", "rail", "coil", "prism", "crystal", "flame", "spin", "void", "bolt", "rune"]
+_ALL_STY = [b.style for b in tt.BARRELS.values()]
+STYLE_IDX = {k: i for i, k in enumerate(_OLD_STY + sorted(set(_ALL_STY) - set(_OLD_STY)))}
+H("enum { " + ", ".join("BSTY_" + ident(k) for k in STYLE_IDX) + ", BSTY_COUNT };")
 for k in BARRELS:
     b = tt.BARRELS[k]
     offs = list(b.offsets) + [0.0] * (4 - len(b.offsets))
@@ -117,7 +124,7 @@ for d in designs:
     k_i = TRACKS.index(parts[2]) if parts else -1
     paint = d.paint if d.paint is not None else (0, 0, 0)
     C(f"  {{{cstr(d.key)}, {cstr(d.name)}, {cstr(d.blurb)}, {cstr(''.join(d.mask))}, {BAR[d.barrel]}, {GLOW[d.glow]}, "
-      f"0x{amb_mask(d.ambient):x}u, {rgb(d.accent)}, {1 if d.paint is not None else 0}, {rgb(paint)}, {t_i}, {h_i}, {k_i}, {num(d.hover)}}},")
+      f"0x{amb_mask(d.ambient):x}ull, {rgb(d.accent)}, {1 if d.paint is not None else 0}, {rgb(paint)}, {t_i}, {h_i}, {k_i}, {num(d.hover)}}},")
 C("};")
 H(f"#define N_DESIGNS {len(designs)}")
 groups = [("DESIGNS_BASE", tt.DESIGNS), ("DESIGNS_SHOP", tt.SHOP_DESIGNS), ("DESIGNS_MISSION", tt.MISSION_DESIGNS),
@@ -160,13 +167,29 @@ for a in all_ammo:
         ap = M["apex"]
         if ap[0] == "split":
             apex_kind, apex_n, apex_v = 1, int(ap[1]), float(ap[2])
+        elif ap[0] == "mirror":
+            apex_kind = 3
         else:
             apex_kind, apex_v = 2, float(ap[1])
+    v2 = {}
+    for k in ("seek", "pstep", "push", "cdelay", "burrow"):
+        if k in M:
+            has.append("MF_" + k.upper())
+        v2[k] = num(M[k]) if k in M else "0.0"
+    i2 = {}
+    for k in ("pierce", "slither", "stars", "volley"):
+        if k in M:
+            has.append("MF_" + k.upper())
+        i2[k] = int(M.get(k, 0))
+    known = {"g", "wind", "speed", "radius", "br", "subr", "cspace", "cr", "cstep", "fuse", "fr", "pull", "bounce", "cluster", "chain",
+             "dmg", "multi", "wob", "terrain", "apex", "seek", "pstep", "push", "cdelay", "burrow", "pierce", "slither", "stars", "volley"}
+    assert set(M) <= known, (a.key, set(M) - known)
     flags = "|".join(has) or "0"
     C(f"  {{{cstr(a.key)}, {cstr(a.name)}, {cstr(a.blurb)}, {PROJ[a.proj]}, {TRAIL[a.trail]}, {BOOM[a.boom]}, {flags}, "
       f"{vals['g']}, {vals['wind']}, {vals['speed']}, {vals['radius']}, {vals['br']}, {vals['subr']}, {vals['cspace']}, {vals['cr']}, "
       f"{vals['cstep']}, {vals['fuse']}, {vals['fr']}, {vals['pull']}, {num(wob[0])}, {num(wob[1])}, {num(apex_v)}, "
-      f"{ints['bounce']}, {ints['cluster']}, {ints['chain']}, {ints['dmg']}, {ints['multi']}, {terr}, {apex_kind}, {apex_n}}},")
+      f"{ints['bounce']}, {ints['cluster']}, {ints['chain']}, {ints['dmg']}, {ints['multi']}, {terr}, {apex_kind}, {apex_n}, "
+      f"{v2['seek']}, {v2['pstep']}, {v2['push']}, {v2['cdelay']}, {v2['burrow']}, {i2['pierce']}, {i2['slither']}, {i2['stars']}, {i2['volley']}}},")
 C("};")
 H(f"#define N_AMMOS {len(all_ammo)}\n#define N_AMMOS_PUBLIC {len(tt.ALL_AMMOS)}")
 groups = [("AMMOS_BASE", tt.AMMOS), ("AMMOS_SHOP", tt.SHOP_AMMOS), ("AMMOS_MISSION", tt.MISSION_AMMOS), ("AMMOS_TICKET", tt.TICKET_AMMOS),

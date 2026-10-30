@@ -171,14 +171,14 @@ static RGB glow_color(const TankDesign *d, RGB body, float t, int idx) {
 }
 
 static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDesign *d, float t) {
-    uint32_t k = d->ambient;
+    uint64_t k = d->ambient;
     RGB acc = d->accent;
-    if (k & (1u << AMB_HALO))
+    if (k & (1ull << AMB_HALO))
         for (int i = 0; i < 14; i++) {
             float ang = t * 1.2f + i * TAU_F / 14;
             cblendf(cv, x + fcos(ang) * 6.5f * scale, y + 9 * scale + fsin(ang) * 1.6f * scale, (RGB){255, 232, 150}, 0.35f + 0.5f * (0.5f + 0.5f * fsin(ang * 2 - t * 4)));
         }
-    if (k & (1u << AMB_GLYPHS))
+    if (k & (1ull << AMB_GLYPHS))
         for (int i = 0; i < 4; i++) {
             float ang = -t * 0.9f + i * PI_F / 2;
             float gx = x + fcos(ang) * 8.5f * scale, gy = y + 4 * scale + fsin(ang) * 3.2f * scale, a = 0.45f + 0.45f * fsin(t * 5 + i * 1.9f);
@@ -186,12 +186,12 @@ static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDes
             cblendf(cv, gx + 1, gy, acc, a * 0.4f); cblendf(cv, gx - 1, gy, acc, a * 0.4f);
             cblendf(cv, gx, gy + 1, acc, a * 0.4f); cblendf(cv, gx, gy - 1, acc, a * 0.4f);
         }
-    if (k & (1u << AMB_RIFTMOTES))
+    if (k & (1ull << AMB_RIFTMOTES))
         for (int i = 0; i < 8; i++) {
             float ang = t * 1.5f + i * TAU_F / 8;
             cblendf(cv, x + fcos(ang) * (6 + i % 3) * scale, y + 4 * scale + fsin(ang) * 3 * scale, i % 2 == 0 ? (RGB){255, 244, 205} : (RGB){120, 60, 220}, 0.85f);
         }
-    if (k & (1u << AMB_SPARKLE))
+    if (k & (1ull << AMB_SPARKLE))
         for (int i = 0; i < 4; i++) {
             float ang = t * 1.3f + i * PI_F / 2;
             float sx = x + fcos(ang) * 8 * scale, sy = y + 3 * scale + fsin(ang) * 5 * scale, tw = 0.5f + 0.5f * fsin(t * 9 + i * 1.7f);
@@ -199,7 +199,7 @@ static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDes
             cblendf(cv, sx + 1, sy, (RGB){255, 200, 110}, 0.3f * tw); cblendf(cv, sx - 1, sy, (RGB){255, 200, 110}, 0.3f * tw);
             cblendf(cv, sx, sy + 1, (RGB){255, 200, 110}, 0.3f * tw); cblendf(cv, sx, sy - 1, (RGB){255, 200, 110}, 0.3f * tw);
         }
-    if (k & (1u << AMB_PRISM))
+    if (k & (1ull << AMB_PRISM))
         for (int i = 0; i < 6; i++) {
             float ph = frac1(t * 0.9f + i * 0.37f);
             float sx = x + fcos(i * 2.4f + t * 0.6f) * (5 + i % 3) * scale;
@@ -212,14 +212,14 @@ static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDes
                 cblendf(cv, sx + s, sy, col, al); cblendf(cv, sx - s, sy, col, al); cblendf(cv, sx, sy + s, col, al); cblendf(cv, sx, sy - s, col, al);
             }
         }
-    if (k & (1u << AMB_ORBIT))
+    if (k & (1ull << AMB_ORBIT))
         for (int i = 0; i < 5; i++) {
             float ang = t * (1.6f + 0.2f * i) + i * 1.26f;
             float sx = x + fcos(ang) * (7 + i % 2) * scale, sy = y + 3.5f * scale + fsin(ang) * 2.4f * scale;
             cblendf(cv, sx, sy, acc, 0.9f);
             cblendf(cv, sx - fcos(ang + 1.5f) * 0.9f, sy - fsin(ang + 1.5f) * 0.9f, acc, 0.35f);
         }
-    if (k & (1u << AMB_LIGHTNING)) {
+    if (k & (1ull << AMB_LIGHTNING)) {
         int step = (int)(t * 14);
         for (int i = 0; i < 2; i++) {
             if (flick(step / 30.0f, i, 33) > 0.55f) {
@@ -232,7 +232,7 @@ static void ambient_overlay(Surf *cv, float x, float y, int scale, const TankDes
             }
         }
     }
-    if (k & (1u << AMB_VOID))
+    if (k & (1ull << AMB_VOID))
         for (int i = 0; i < 6; i++) {
             float kk = frac1(t * 0.8f + i / 6.0f), ang = i * 1.05f + t * 0.7f;
             cblendf(cv, x + fcos(ang) * (1 - kk) * 9 * scale, y + 3 * scale + fsin(ang) * (1 - kk) * 5 * scale, (RGB){170, 110, 255}, 0.7f * kk);

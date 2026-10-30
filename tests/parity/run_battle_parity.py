@@ -27,6 +27,12 @@ class FakeApp:
         class FB:
             def emit(self, k): pass
         self.feedback = FB()
+        class Quiet:                                   # 2.0: scenes talk to the audio engine; the test needs silence
+            def __getattr__(self, name):
+                return lambda *a, **k: None
+        self.audio = Quiet()
+    def __getattr__(self, name):                       # any other 2.0 app hook (sfx, music, toasts...) is a no-op
+        return lambda *a, **k: None
     def push(self, s): self.pushed.append(s)
     def goto(self, s): pass
     def apply_settings(self): pass
