@@ -14,6 +14,18 @@ kept, unmodified, in `reference/` and is the source of truth for every rule, tab
 
 ## Screenshots
 
+<table>
+  <tr>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-title.png" width="250" alt="Title screen"></td>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-rules.png" width="250" alt="Rules"></td>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-setup.png" width="250" alt="Setup"></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-shop.png" width="250" alt="Shop"></td>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-battle.png" width="250" alt="Battle"></td>
+    <td><img src="https://github.com/ethanlabs101/TerminalTanks-DS/blob/main/Media/ds-tournament.png" width="250" alt="Tournament"></td>
+  </tr>
+</table>
 
 > Screenshots are recorded from v1.5.0
 
