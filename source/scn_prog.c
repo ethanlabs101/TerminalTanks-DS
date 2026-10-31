@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "director.h"
 #include "scenes.h"
 #include "ui.h"
 #include "preview.h"
@@ -136,6 +137,7 @@ typedef struct {
     int n, i;
     float age;
     bool done;
+    int snd_page;         /* last page whose sounds played, + 1 */
     NextFn next;
     float stars[90][3];
     MapPreview mp;
@@ -157,7 +159,26 @@ static void cine_handle(Scene *sc, const IEv *e) {
         else { c->i++; c->age = 0; }
     }
 }
-static void cine_update(Scene *sc, float dt) { ((Cine *)sc)->age += dt; }
+static void cine_update(Scene *sc, float dt) {
+    Cine *c = (Cine *)sc;
+    c->age += dt;
+    if (c->snd_page != c->i + 1 && c->i < c->n) {     /* StoryScene.update: a page turn, the voice, the awakening, a flash */
+        c->snd_page = c->i + 1;
+        const CinePage *pg = &c->pages[c->i];
+        if (c->i) sfx_play(SFX_UI_PAGE, 0.6f, 0, 1, 0);
+        if (pg->stage == CS_VOICE) sfx_play(SFX_WHISPER, 0.8f, 0, 1, 0);
+        else if (pg->stage == CS_AWAKE) sfx_play(SFX_TIME_MACHINE, 1.0f, 0, 1, 0);
+        if (pg->flash) sfx_play(SFX_CINE_HIT, 0.9f, 0, 1, 0);
+    }
+}
+static int cine_music(Scene *sc, int *mood) {
+    Cine *c = (Cine *)sc;
+    const char *who[MAX_PAGES];
+    int st[MAX_PAGES];
+    for (int i = 0; i < c->n; i++) { who[i] = c->pages[i].who; st[i] = c->pages[i].stage; }
+    *mood = MOOD_STORY;
+    return cinematic_song(who, st, c->n);
+}
 static void cine_draw(Scene *sc, Term *t) {
     Cine *c = (Cine *)sc;
     term_fill(t, 0, 0, T_COLS, T_ROWS, (RGB){3, 2, 10});
@@ -244,7 +265,8 @@ static void cine_destroy(Scene *sc) {
     canvas_free(&c->cv);
     free(c);
 }
-static const SceneVT CINE_VT = {.handle = cine_handle, .update = cine_update, .draw = cine_draw, .destroy = cine_destroy};
+static const SceneVT CINE_VT = {.handle = cine_handle, .update = cine_update, .draw = cine_draw, .destroy = cine_destroy, .music = cine_music,
+                                .sound_kind = SK_SILENT};
 
 static Scene *cine_new(const PageList *lists, int nl, NextFn next) {
     Cine *c = NEW(Cine, &CINE_VT);
@@ -581,7 +603,7 @@ static void tres_draw(Scene *sc, Term *t) {
     }
 }
 static void tres_destroy(Scene *sc) { TourRes *s = (TourRes *)sc; preview_free(&s->stage); free(s); }
-static const SceneVT TRES_VT = {.enter = tres_enter, .exit = tres_exit, .handle = tres_handle, .update = tres_update, .draw = tres_draw, .destroy = tres_destroy};
+static const SceneVT TRES_VT = {.enter = tres_enter, .exit = tres_exit, .handle = tres_handle, .update = tres_update, .draw = tres_draw, .destroy = tres_destroy, .music = music_result};
 Scene *scene_tournament_result(void) {
     TourRes *s = NEW(TourRes, &TRES_VT);
     preview_init(&s->stage, 40, 26, 2, 3);
@@ -650,7 +672,7 @@ static void tkres_draw(Scene *sc, Term *t) {
         if (!ok) ui_button(t, x + 28, y + 18, "Y RETRY", P_PRIMARY, P_PANEL, 2);
     }
 }
-static const SceneVT TKRES_VT = {.enter = tkres_enter, .exit = tres_exit, .handle = tkres_handle, .update = tkres_update, .draw = tkres_draw};
+static const SceneVT TKRES_VT = {.enter = tkres_enter, .exit = tres_exit, .handle = tkres_handle, .update = tkres_update, .draw = tkres_draw, .music = music_result};
 Scene *scene_ticket_result(void) { return &NEW(TicketRes, &TKRES_VT)->base; }
 
 /* ================================================================== MartyrRewardsScene (l.12884) + finale (l.12926) */
@@ -704,7 +726,7 @@ static void mrew_draw(Scene *sc, Term *t) {
     term_center(t, y + 22, "[ A ]", (int)(tm * 2) % 2 == 0 ? P_PRIMARY : P_MUTED, &P_PANEL, x, 49);
 }
 static void mrew_destroy(Scene *sc) { MRew *s = (MRew *)sc; preview_free(&s->stage); free(s); }
-static const SceneVT MREW_VT = {.handle = mrew_handle, .update = mrew_update, .draw = mrew_draw, .destroy = mrew_destroy};
+static const SceneVT MREW_VT = {.handle = mrew_handle, .update = mrew_update, .draw = mrew_draw, .destroy = mrew_destroy, .music = music_blessing};
 Scene *scene_martyr_rewards(void) {
     MRew *s = NEW(MRew, &MREW_VT);
     preview_init(&s->stage, 46, 26, 2, 3);
@@ -733,7 +755,7 @@ static void mfin_draw(Scene *sc, Term *t) {
     }
     if ((int)(tm * 2) % 2 == 0) term_center(t, by + 8, "[ A ]", P_PRIMARY, &P_BG, bx, bw);
 }
-static const SceneVT MFIN_VT = {.handle = mfin_handle, .update = mfin_update, .draw = mfin_draw};
+static const SceneVT MFIN_VT = {.handle = mfin_handle, .update = mfin_update, .draw = mfin_draw, .music = music_blessing};
 Scene *scene_martyr_finale(void) {
     MFin *s = NEW(MFin, &MFIN_VT);
     return &s->base;

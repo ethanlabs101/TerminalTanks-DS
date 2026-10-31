@@ -120,12 +120,26 @@ void WriteGBASave(const u8 *, u32, u32, u32, void *) {}
 void WriteFirmware(const Firmware &, u32, u32, void *) {}
 void WriteDateTime(int, int, int, int, int, int, void *) {}
 static int inst_of(void *u) { return u ? ((Inst *)u)->id : 0; }
+/* Fault injection for the wireless tests (environment):
+ *   HARNESS_DROP=<percent>        lose that share of every wireless frame, at random
+ *   HARNESS_BLACKOUT=<f0>:<f1>    lose everything while console 0 is between frames f0 and f1 (out of range) */
+static std::atomic<int> g_frame0{0};
+static bool mp_lost() {
+    static int drop = getenv("HARNESS_DROP") ? atoi(getenv("HARNESS_DROP")) : 0;
+    static int b0 = -1, b1 = -1;
+    static bool parsed = false;
+    if (!parsed) { parsed = true; if (const char *b = getenv("HARNESS_BLACKOUT")) sscanf(b, "%d:%d", &b0, &b1); }
+    int f = g_frame0.load();
+    if (b0 >= 0 && f >= b0 && f < b1) return true;
+    if (drop > 0) { static thread_local unsigned r = 12345u + (unsigned)(size_t)&r; r = r * 1103515245u + 12345u; return (int)((r >> 16) % 100) < drop; }
+    return false;
+}
 void MP_Begin(void *u) { g_mp->Begin(inst_of(u)); }
 void MP_End(void *u) { g_mp->End(inst_of(u)); }
-int MP_SendPacket(u8 *d, int l, u64 ts, void *u) { return g_mp->SendPacket(inst_of(u), d, l, ts); }
+int MP_SendPacket(u8 *d, int l, u64 ts, void *u) { if (mp_lost()) return l; return g_mp->SendPacket(inst_of(u), d, l, ts); }
 int MP_RecvPacket(u8 *d, u64 *ts, void *u) { return g_mp->RecvPacket(inst_of(u), d, ts); }
-int MP_SendCmd(u8 *d, int l, u64 ts, void *u) { return g_mp->SendCmd(inst_of(u), d, l, ts); }
-int MP_SendReply(u8 *d, int l, u64 ts, u16 aid, void *u) { return g_mp->SendReply(inst_of(u), d, l, ts, aid); }
+int MP_SendCmd(u8 *d, int l, u64 ts, void *u) { if (mp_lost()) return l; return g_mp->SendCmd(inst_of(u), d, l, ts); }
+int MP_SendReply(u8 *d, int l, u64 ts, u16 aid, void *u) { if (mp_lost()) return l; return g_mp->SendReply(inst_of(u), d, l, ts, aid); }
 int MP_SendAck(u8 *d, int l, u64 ts, void *u) { return g_mp->SendAck(inst_of(u), d, l, ts); }
 int MP_RecvHostPacket(u8 *d, u64 *ts, void *u) { return g_mp->RecvHostPacket(inst_of(u), d, ts); }
 u16 MP_RecvReplies(u8 *d, u64 ts, u16 m, void *u) { return g_mp->RecvReplies(inst_of(u), d, ts, m); }
@@ -198,6 +212,8 @@ static std::vector<u8> read_file(const std::string &p) {
 }
 
 static std::atomic<int> g_done{0};
+static bool g_mp_mode = false;
+static std::atomic<int> g_fr[2];   /* frames done per console: the two stay within a few frames of each other */
 
 static void run_instance(int id, const std::string &rom, const std::string &script, const std::string &sdimg) {
     Inst *inst = new Inst{id, nullptr, nullptr};
@@ -220,7 +236,7 @@ static void run_instance(int id, const std::string &rom, const std::string &scri
     memcpy(romdata.get(), data.data(), data.size());
     NDSCart::NDSCartArgs cargs{};
     if (!sdimg.empty()) {
-        cargs.SDCard = FATStorageArgs{sdimg, 64ull * 1024 * 1024, false, std::nullopt};
+        cargs.SDCard = FATStorageArgs{sdimg, 1024ull * 1024 * 1024, false, std::nullopt};   // 1 GB: melonDS puts the ROM itself (~240 MB with the music) on the card
     }
     auto cart = NDSCart::ParseROM(std::move(romdata), (u32)data.size(), inst, std::move(cargs));
     if (!cart) { fprintf(stderr, "bad rom\n"); g_done++; return; }
@@ -235,6 +251,10 @@ static void run_instance(int id, const std::string &rom, const std::string &scri
     std::map<int, int> release_at;
     size_t ci = 0;
     for (int f = 0; f <= last; f++) {
+        if (g_mp_mode && g_done.load() > 0) break;   /* the other console finished: stop too (it can't answer any more) */
+        for (int w = 0; g_mp_mode && g_fr[1 - id].load() < f - 30 && g_done.load() == 0 && w < 4000; w++)
+            std::this_thread::sleep_for(std::chrono::microseconds(50));   /* keep emulated time roughly in step (max 0.2 s wait:
+                                                                              the other side may be blocked waiting for us) */
         for (auto it = release_at.begin(); it != release_at.end();) {
             if (it->second == f) { keys |= 1u << it->first; it = release_at.erase(it); }
             else ++it;
@@ -250,6 +270,8 @@ static void run_instance(int id, const std::string &rom, const std::string &scri
         }
         nds->SetKeyMask(keys);
         nds->RunFrame();
+        if (id == 0) melonDS::Platform::g_frame0.store(f);
+        g_fr[id].store(f);
     }
     fclose(inst->log);
     g_done++;
@@ -267,6 +289,7 @@ int main(int argc, char **argv) {
         run_instance(0, argv[2], argv[3], argc > 5 ? argv[5] : "");
     } else {
         g_outdir = argv[5];
+        g_mp_mode = true;
         std::thread a(run_instance, 0, std::string(argv[2]), std::string(argv[3]), std::string());
         std::thread b(run_instance, 1, std::string(argv[2]), std::string(argv[4]), std::string());
         a.join();

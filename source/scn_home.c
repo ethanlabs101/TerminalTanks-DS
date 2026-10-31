@@ -174,7 +174,7 @@ Scene *scene_title(void) {
 
 /* ---- main menu (l.7654) */
 static const char *const MENU_ITEMS[] = {"SINGLE PLAYER", "TWO PLAYER", "LAN PLAY", "TOURNAMENT", "MISSIONS", "SHOP", "WORKSHOP",
-                                         "HOW TO PLAY", "TUTORIAL", "PROFILES", "SETTINGS", "CHEAT CODES", "LINKS", "QUIT"};
+                                         "HOW TO PLAY", "TUTORIAL", "JUKEBOX", "PROFILES", "SETTINGS", "CHEAT CODES", "LINKS", "QUIT"};
 #define HOT_MENU 100
 
 static void mainmenu_handle(Scene *s, const IEv *e) {
@@ -200,6 +200,7 @@ static void mainmenu_handle(Scene *s, const IEv *e) {
     else if (!strcmp(label, "PROFILES")) app_goto(scene_profiles());
     else if (!strcmp(label, "HOW TO PLAY")) app_goto(scene_howto());
     else if (!strcmp(label, "SETTINGS")) app_goto(scene_settings());
+    else if (!strcmp(label, "JUKEBOX")) app_goto(scene_jukebox());
     else if (!strcmp(label, "CHEAT CODES")) app_goto(scene_cheats());
     else if (!strcmp(label, "LINKS")) app_goto(scene_links());
     else if (!strcmp(label, "QUIT")) g_app.running = false;
@@ -298,7 +299,7 @@ static const SceneVT MENU_VT = {.handle = mainmenu_handle, .update = home_update
 Scene *scene_menu(void) {
     Home *h = NEW(Home, &MENU_VT);
     h->base.home = true;
-    menu_init(&h->menu, MENU_ITEMS, 14);
+    menu_init(&h->menu, MENU_ITEMS, 15);
     return &h->base;
 }
 
@@ -389,7 +390,7 @@ Scene *scene_howto(void) { return &NEW(HowTo, &HOWTO_VT)->base; }
 /* ================================================================== settings (l.7816) */
 typedef struct { const char *label; double v; } Choice;
 typedef struct { const char *name; int id; const char *desc; } SetRow;
-enum { SR_DIFF, SR_WIND, SR_ANIM, SR_FX, SR_TRAIL, SR_PART, SR_GUIDE, SR_MAPS, SR_SOUND, SR_HOME, SR_N };
+enum { SR_DIFF, SR_WIND, SR_ANIM, SR_FX, SR_TRAIL, SR_PART, SR_GUIDE, SR_MAPS, SR_SOUND, SR_MUSVOL, SR_SFXVOL, SR_POPUP, SR_HOME, SR_N };
 static const SetRow SET_ROWS[SR_N] = {
     {"AI DIFFICULTY", SR_DIFF, "How well the computer solves its firing problem"},
     {"WIND", SR_WIND, "Shifts every turn - read the arrows before you fire"},
@@ -399,7 +400,10 @@ static const SetRow SET_ROWS[SR_N] = {
     {"PARTICLE DENSITY", SR_PART, "Sparks, debris and smoke"},
     {"AIM GUIDE", SR_GUIDE, "Dotted NO-WIND preview - you add the wind"},
     {"MAP SELECTION", SR_MAPS, "Pick the opening battlefield or roll the dice"},
-    {"SOUND", SR_SOUND, "A beep on impacts"},
+    {"AUDIO", SR_SOUND, "Music and effects, just a beep, or silence"},
+    {"MUSIC VOLUME", SR_MUSVOL, "Soundtrack level"},
+    {"SFX VOLUME", SR_SFXVOL, "Explosions, shots and menu clicks"},
+    {"SONG POPUP", SR_POPUP, "A NOW PLAYING card slides in when the music changes"},
     {"HOME SCREEN", SR_HOME, "Pick any home screen you own"},
 };
 static const Choice CH_DIFF[] = {{"EASY", DIFF_EASY}, {"NORMAL", DIFF_NORMAL}, {"HARD", DIFF_HARD}, {"MASTER", DIFF_MASTER}};
@@ -410,7 +414,9 @@ static const Choice CH_TRAIL[] = {{"OFF", 0.0}, {"SHORT", 0.55}, {"LONG", 1.3}};
 static const Choice CH_PART[] = {{"LOW", 0.45}, {"MEDIUM", 1.0}, {"HIGH", 1.8}};
 static const Choice CH_GUIDE[] = {{"OFF", 0}, {"SHORT", 1}, {"FULL", 2}};
 static const Choice CH_MAPS[] = {{"CHOOSE", 0}, {"RANDOM", 1}};
-static const Choice CH_SOUND[] = {{"OFF", 0}, {"BEEP", 1}};
+static const Choice CH_SOUND[] = {{"ON", SND_ON}, {"BEEP ONLY", SND_BEEP}, {"OFF", SND_OFF}};
+static const Choice CH_VOL[] = {{"0%", 0}, {"10%", 1}, {"20%", 2}, {"30%", 3}, {"40%", 4}, {"50%", 5}, {"60%", 6}, {"70%", 7},
+                                {"80%", 8}, {"90%", 9}, {"100%", 10}};
 
 static int set_choices(int row, Choice *out) {
     const Choice *src = NULL;
@@ -424,7 +430,9 @@ static int set_choices(int row, Choice *out) {
     case SR_PART: src = CH_PART; n = 3; break;
     case SR_GUIDE: src = CH_GUIDE; n = 3; break;
     case SR_MAPS: src = CH_MAPS; n = 2; break;
-    case SR_SOUND: src = CH_SOUND; n = 2; break;
+    case SR_SOUND: src = CH_SOUND; n = 3; break;
+    case SR_MUSVOL: case SR_SFXVOL: src = CH_VOL; n = 11; break;
+    case SR_POPUP: src = CH_BOOL; n = 2; break;
     case SR_HOME: {
         int modes[N_HOME];
         n = save_home_modes(&g_app.save, modes);
@@ -446,7 +454,12 @@ static double set_get(int row) {
     case SR_PART: return s->particle_density;
     case SR_GUIDE: return s->aim_guide;
     case SR_MAPS: return s->random_maps;
-    case SR_SOUND: return s->sound;
+    case SR_POPUP: return g_app.save.song_popup_off ? 0 : 1;
+    case SR_SOUND: case SR_MUSVOL: case SR_SFXVOL: {
+        int m, mv, sv;
+        settings_audio(s, &m, &mv, &sv);
+        return row == SR_SOUND ? m : row == SR_MUSVOL ? mv : sv;
+    }
     default: return s->home_mode;
     }
 }
@@ -461,7 +474,14 @@ static void set_put(int row, double v) {
     case SR_PART: s->particle_density = v; break;
     case SR_GUIDE: s->aim_guide = (int)v; break;
     case SR_MAPS: s->random_maps = v != 0; break;
-    case SR_SOUND: s->sound = v != 0; break;
+    case SR_POPUP: g_app.save.song_popup_off = v == 0; break;
+    case SR_SOUND: case SR_MUSVOL: case SR_SFXVOL: {
+        int m, mv, sv;
+        settings_audio(s, &m, &mv, &sv);
+        if (row == SR_SOUND) m = (int)v; else if (row == SR_MUSVOL) mv = (int)v; else sv = (int)v;
+        settings_set_audio(s, m, mv, sv);
+        break;
+    }
     default: s->home_mode = (int)v; break;
     }
 }
@@ -473,7 +493,8 @@ static int set_index(int row) {
     return 0;
 }
 
-typedef struct { Scene base; int index; } SettingsScn;
+typedef struct { Scene base; int index, top; } SettingsScn;
+#define SET_VIS 9           /* rows on screen; the list scrolls */
 #define HOT_SET 300
 static void settings_handle(Scene *s, const IEv *e) {
     SettingsScn *ss = (SettingsScn *)s;
@@ -501,8 +522,14 @@ static void settings_draw(Scene *s, Term *t) {
     int W = 49, h = T_SPLIT, x = 1, y = T_SPLIT;
     ui_logo(t, LOGO_CLASSIC, 4, (float)g_app.time, true, HOME_CLASSIC, false);
     term_box(t, x, y, W, h, TB_DOUBLE, P_LINE, P_PANEL, "SETTINGS", P_PRIMARY);
-    for (int i = 0; i < SR_N; i++) {
-        int ry = y + 1 + i * 2;
+    if (ss->index < ss->top) ss->top = ss->index;
+    if (ss->index >= ss->top + SET_VIS) ss->top = ss->index - SET_VIS + 1;
+    if (ss->top < 0) ss->top = 0;
+    if (ss->top > SR_N - SET_VIS) ss->top = SR_N - SET_VIS;
+    if (ss->top > 0) term_text(t, x + W - 2, y + 1, "\xE2\x96\xB2", P_PRIMARY_DIM, &P_PANEL);
+    if (ss->top + SET_VIS < SR_N) term_text(t, x + W - 2, y + 2 * SET_VIS, "\xE2\x96\xBC", P_PRIMARY_DIM, &P_PANEL);
+    for (int i = ss->top; i < ss->top + SET_VIS && i < SR_N; i++) {
+        int ry = y + 1 + (i - ss->top) * 2;
         bool sel = i == ss->index;
         RGB bg = sel ? P_PANEL_HI : P_PANEL;
         term_fill(t, x + 2, ry, W - 4, 1, bg);
@@ -517,7 +544,9 @@ static void settings_draw(Scene *s, Term *t) {
     }
     const char *desc = SET_ROWS[ss->index].desc;
     if (!save_master_unlocked(&g_app.save) && (ss->index == SR_DIFF || ss->index == SR_HOME)) desc = "MASTER unlocks after Tournament Level 10";
-    term_center(t, y + h - 3, desc, P_MUTED, &P_PANEL, x, W);
+    char dl[2][64];
+    int nd = wrap_text(desc, W - 6, dl, 2);           /* long descriptions take two lines instead of running off */
+    for (int k = 0; k < nd; k++) term_center(t, y + h - 4 + k + (nd == 1), dl[k], P_MUTED, &P_PANEL, x, W);
     term_center(t, y + h - 2, "B  BACK", P_PRIMARY_DIM, &P_PANEL, x, W);
 }
 static const SceneVT SETTINGS_VT = {.handle = settings_handle, .update = backdrop_scene_update, .draw = settings_draw};

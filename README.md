@@ -24,7 +24,8 @@ docs/                  spec, architecture, controls, building, testing, parity, 
 | Every scene of the original (title → menus → battle → results, tournament, missions, co-op, shop, workshop + studio, tickets, Martyr, cinematics, profiles, tutorial/practice, settings, cheats, links, LAN) | ported | every main-menu screen rendered in melonDS (`tests/harness/tour.py`); single-player and tournament battles played in the emulator; tickets, the Martyr, cinematics and the studio were not reached in emulator runs |
 | Local wireless, two DS consoles, no router | working in emulation | `tests/harness/run_lan_versus.py`: host, join, RPS, ~30 shots across 2 rounds, identical state hashes on both consoles |
 | Saves (3 profiles) on the SD/flashcart FAT | working in emulation | profile written to an emulated SD card and read back after a reboot |
-| Real hardware | **not tested** | no DS hardware was available; see docs/TESTING.md |
+| Music and sound effects (the PC soundtrack, 277 songs, and every effect) | rendered from the original's mixer, streamed from the ROM | checked in the emulator against the expected audio (`docs/TESTING.md`); not yet heard on a real DS |
+| Real hardware | the 2.0 test ROM boots on the user's DS; full hardware test pending | see `PROGRESS.md` |
 
 Known gaps are listed honestly in `docs/FEATURE_PARITY.md`.
 
@@ -33,7 +34,8 @@ Known gaps are listed honestly in `docs/FEATURE_PARITY.md`.
 ```sh
 scripts/setup_toolchain.sh                      # once: GCC 14 + picolibc + BlocksDS 1.17.1 (from GitHub)
 export WONDERFUL_TOOLCHAIN=/opt/wonderful BLOCKSDS=$HOME/deps/blocksds
-make -j8                                        # -> terminaltanks.nds
+make audio                                      # once: renders the soundtrack (Python 3 + numpy + scipy)
+make -j8                                        # -> terminaltanks.nds (about 240 MB, mostly music)
 ```
 
 Copy `terminaltanks.nds` to a flashcart (or run it in melonDS / no$gba). Saves go to `/data/TerminalTanks/`

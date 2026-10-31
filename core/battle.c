@@ -52,6 +52,10 @@ static void fx_impact(Battle *b, double x, double y, RGB accent, double scale, i
     r->x = x; r->y = y; r->c0 = accent; r->c1 = THEMES[MAPDEFS[b->w.map].theme].soil; r->p = scale; r->ammo_boom = AMMOS[ammo].boom;
 }
 static void fx_sound(Battle *b, int kind) { FxReq *r = fx(b, FX_SOUND); if (r) r->a = (uint8_t)kind; }
+static void sfx(Battle *b, int kind, double x, double vol, double rate, int ammo) {
+    FxReq *r = fx(b, FX_SFX);
+    if (r) { r->a = (uint8_t)kind; r->x = x; r->p = vol; r->q = rate; r->n = ammo; }
+}
 
 /* ---------------------------------------------------------------- helpers */
 int battle_control(const Battle *b, const Tank *t) {
@@ -187,6 +191,7 @@ void battle_init(Battle *b, Session *s, SaveData *save, const Settings *settings
 
 /* ---------------------------------------------------------------- turn flow */
 static void begin_turn(Battle *b, bool volley);
+static double w_center(const Battle *b) { return b->w.width * 0.5; }
 static void fire(Battle *b, bool announce);
 
 static void practice_end_turn(Battle *b) {
@@ -234,6 +239,7 @@ static void forfeit(Battle *b, Tank *tank, bool announce) {
         return;
     }
     tank->charge++;
+    sfx(b, BS_SPECIAL_CHARGE, tank->x, 0.8, 1.0, 0);
     char txt[40];
     if (tank->charge >= need) snprintf(txt, sizeof txt, "SPECIAL READY!");
     else snprintf(txt, sizeof txt, "CHARGING %d/%d", tank->charge, need);
@@ -263,6 +269,7 @@ static bool turn_start(Battle *b, Tank *tank) {
     }
     tank->x = cand;
     tank->vis_dx = old - tank->x;
+    sfx(b, BS_UFO_HOP, tank->x, 0.7, 1.0, 0);
     terrain_flatten(&w->terrain, tank->x, 10);
     tank->y = (double)terrain_support(&w->terrain, tank->x) + tank->hover;
     double frac = (double)tank->hp / tank->max_hp;
@@ -282,6 +289,7 @@ static bool turn_start(Battle *b, Tank *tank) {
     int period = frac > 0.5 ? 3 : 2;
     if ((tank->turns / 2) % period == 0) {
         tank->volley = 2;
+        sfx(b, BS_UFO_VOLLEY, tank->x, 0.9, 1.0, 0);
         floater(b, tank->x, tank->y + tank_h(tank) + 14, "VOLLEY!", C_DANGER);
     }
     return false;
@@ -328,6 +336,12 @@ static void begin_turn(Battle *b, bool volley) {
     battle_wind_text(b, wt, sizeof wt);
     banner(b, tt, ready ? "SPECIAL READY - FIRE FOR 3 DAMAGE!" : wt, tank->color, volley ? 0.9 : 1.3);
     int ctl = battle_control(b, tank);
+    if (!volley) {
+        sfx(b, ctl == CTL_LOCAL ? BS_TURN_YOU : BS_TURN_CPU, w_center(b), 0.55, 1.0, 0);
+        double wd = fabs(b->w.wind);
+        if (wd > 6.0 && b->settings->wind > 0)
+            sfx(b, BS_WIND, b->w.width * (b->w.wind > 0 ? 0.8 : 0.2), wd / 10 < 1 ? wd / 10 : 1.0, 1.0, 0);
+    }
     b->aim_sent_valid = false;
     if (ctl == CTL_AI && s->mode == MODE_SINGLE && s->special && !s->net && !volley && b->has_ai[tank->index] && tank->kind != KIND_UFO &&
         tank->charge < s->special_wait && rng_random(&b->srng) < 0.2) {
@@ -401,6 +415,9 @@ static void fire(Battle *b, bool announce) {
     tank->recoil = 0.2;
     FxReq *r = fx(b, FX_MUZZLE);
     if (r) { r->x = ox; r->y = oy; r->p = tank->angle; r->c0 = tank->shot_color; }
+    sfx(b, BS_FIRE, ox, 0.9, 1.0, tank->ammo);
+    if (b->blessing_shot) sfx(b, BS_BLESS_CHOIR, ox, 0.8, 1.0, 0);
+    else if (b->special_shot) sfx(b, BS_SPECIAL_FIRE, ox, 0.9, 1.0, 0);
     kick(b, 0.9);
     b->phase = PH_FLIGHT;
     b->t = 0;
@@ -492,6 +509,7 @@ static void begin_blessing(Battle *b, const Ev *ev) {
     b->nflights = 0;
     Blessing *bl = &b->bless;
     memset(bl, 0, sizeof(*bl));
+    sfx(b, BS_BLESS_STAR, ev->x, 1.0, 1.0, 0);
     double W = w->width, span = W * 0.55;
     int n = 10;
     double c0 = clampd(ev->x - span / 2, 4, (4 > W - 4 - span ? 4 : W - 4 - span));
@@ -548,6 +566,13 @@ static void blessing_update(Battle *b, double sdt) {
     Tank *cur = battle_current(b);
     bl->t += sdt;
     double R = PHYS_BLAST_RADIUS;
+    if (!bl->skipped && bl->t < bl->T_BANG) {      /* the clock winds: one tick per beat, faster as it closes */
+        int n = (int)(pow(bl->t / (bl->T_BANG > 0.01 ? bl->T_BANG : 0.01), 0.7) * 12);
+        if (n > bl->ticks) {
+            bl->ticks = n;
+            sfx(b, BS_BLESS_TICK, w_center(b), 0.7, 1.0 + n * 0.03, 0);
+        }
+    }
     /* events in key order: bang, hit0.., finale, wipe0.. */
     for (int key = 0; key < 1 + bl->ntargets + 1 + bl->nwipes; key++) {
         double when;
@@ -565,8 +590,11 @@ static void blessing_update(Battle *b, double sdt) {
             b->flash = 1.0;
             kick(b, 5.0);
             fx_sound(b, 1);
+            sfx(b, BS_BLESS_PILLAR, b->impact.x, 1.0, 1.0, 0);
         } else if (kind == 1) {
             BlessTarget *tg = &bl->targets[idx];
+            if (!bl->skipped || idx == 0)
+                sfx(b, BS_BLESS_PILLAR_HIT, tg->x, tg->tank >= 0 ? 0.9 : 0.6, 1.0 - 0.02 * (idx % 6), 0);
             world_terrain_op(w, TERR_BLAST, tg->x, tg->y, R * (tg->tank >= 0 ? 1.7 : 2.6));
             if (!bl->skipped) {
                 explosion(b, tg->x, tg->y, R * 3.2, idx % 2 == 0 ? C_BGOLD : C_VIOLET, 1.1, BOOM_BLESSING);
@@ -577,6 +605,7 @@ static void blessing_update(Battle *b, double sdt) {
             }
             if (tg->tank >= 0) bless_kill(b, &w->tanks[tg->tank]);
         } else if (kind == 2) {
+            sfx(b, BS_BLESS_NUKE, b->impact.x, 1.0, 1.0, 0);
             world_terrain_op(w, TERR_BLAST, b->impact.x, b->impact.y, R * 4.2);
             if (!bl->skipped) {
                 explosion(b, b->impact.x, b->impact.y, R * 7.5, C_WHITE, 2.0, BOOM_BLESSING);
@@ -585,6 +614,7 @@ static void blessing_update(Battle *b, double sdt) {
                 fx_sound(b, 1);
             }
         } else {
+            if (idx == 0) sfx(b, BS_BLESS_FIREWALL, w_center(b), 1.0, 1.0, 0);
             world_terrain_op(w, TERR_BLAST, bl->wipes[idx][0], bl->wipes[idx][1], R * 3.4);
             if (!bl->skipped) {
                 explosion(b, bl->wipes[idx][0], bl->wipes[idx][1], R * 3.4, (RGB){255, 150, 60}, 1.2, BOOM_BLESSING);
@@ -670,6 +700,11 @@ static void impact_update(Battle *b, double sdt) {
         explosion(b, imp->x, imp->y, R > 2.0 ? R : 2.0, shooter->shot_color, 0.95, AMMOS[shooter->ammo].boom);
         if (ev->radius >= 0.5) kick(b, ev->big ? 5.0 : 1.6 * (1.4 < ev->radius ? 1.4 : ev->radius));
         fx_sound(b, 1);
+        if (imp->kind != IMP_OUT) {
+            double v = clampd(0.55 + 0.35 * ev->radius, 0.4, 1.0) * (ev->big ? 1.25 : 1.0);
+            sfx(b, BS_HIT, imp->x, v, ev->first ? 1.0 : 1.0 + 0.04 * (b->npending % 5), shooter->ammo);
+            if (imp->kind == IMP_TERRAIN && ev->mode == TERR_MOUND) sfx(b, BS_MOUND, imp->x, 0.6, 1.0, 0);
+        }
     }
     if (b->t >= 0.06 && !(b->flags & F_BURST)) {
         b->flags |= F_BURST;
@@ -698,6 +733,7 @@ static void impact_update(Battle *b, double sdt) {
             Tank *v = &w->tanks[b->victims[i]];
             int dmg = ev->dmg * ((direct && v->scale > 1.0) ? 2 : 1) * session_dmg_mult(b->s, shooter);
             if (v->shield > 0) { v->shield--; dmg = 0; }
+            sfx(b, dmg == 0 ? BS_SHIELD : BS_TANK_HIT, v->x, direct ? 0.9 : 0.7, 1.0, 0);
             v->hp -= dmg;
             v->hurt = 0.6;
             char txt[40];
@@ -779,6 +815,8 @@ static void destruction_update(Battle *b, double sdt) {
         b->flash = 1.0;
         kick(b, 4.5);
         fx_sound(b, 2);
+        sfx(b, BS_DESTROY, d->x, 1.0, 1.0, 0);
+        sfx(b, BS_DEBRIS, d->x, 0.7, 1.0, 0);
         b->guide_version++;
     }
     if (b->t >= 1.6 && !(b->flags & F_BANNER)) {

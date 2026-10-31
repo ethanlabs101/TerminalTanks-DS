@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include "platform.h"
+#include "audio.h"
 
 static Px g_buf[2][SCR_W * SCR_H] __attribute__((aligned(32)));
 static Surf g_surf[2];
@@ -14,8 +15,12 @@ static volatile uint32_t g_vbl;
 static uint32_t g_last_vbl;
 static double g_dt = 1.0 / 30.0;
 static bool g_fat, g_read_only;
+static const char g_root[] = "/data", g_dir[] = "/data/TerminalTanks";   /* on the current drive: the SD card (see audio_init) */
 
-static void on_vblank(void) { g_vbl++; }
+static void on_vblank(void) {
+    g_vbl++;
+    audio_irq();
+}
 
 void plat_init(void) {
     defaultExceptionHandler();          /* a crash shows the guru screen instead of a frozen/white screen */
@@ -50,10 +55,13 @@ void plat_init_storage(bool read_only) {
     g_fat = fatInitDefault();
     g_read_only = read_only;
     if (g_fat && !read_only) {
-        mkdir("/data", 0777);
-        mkdir("/data/TerminalTanks", 0777);
+        mkdir(g_root, 0777);
+        mkdir(g_dir, 0777);
     }
 }
+
+const char *plat_data_dir(void) { return g_dir; }
+bool plat_storage_writable(void) { return g_fat && !g_read_only; }
 
 /* Shows the back buffers right away (boot progress screens, before the frame loop runs). */
 void plat_show_now(void) {
@@ -145,7 +153,7 @@ static uint32_t slot_sum(const uint8_t *b, int n) {
     for (int i = 0; i < n; i++) h = (h ^ b[i]) * 16777619u;
     return h;
 }
-static void slot_path(const char *name, int k, char *out, int n) { snprintf(out, (size_t)n, "/data/TerminalTanks/%s.%d", name, k); }
+static void slot_path(const char *name, int k, char *out, int n) { snprintf(out, (size_t)n, "%s/%s.%d", g_dir, name, k); }
 static uint8_t g_slot[SLOT_SIZE];
 
 /* reads slot k; returns payload length (payload copied to buf) or -1; *seq gets its sequence number */
@@ -200,7 +208,7 @@ int plat_load(const char *name, uint8_t *buf, int cap) {
     }
     /* saves written by earlier builds: a single file */
     char path[96];
-    snprintf(path, sizeof path, "/data/TerminalTanks/%s", name);
+    snprintf(path, sizeof path, "%s/%s", g_dir, name);
     FILE *f = fopen(path, "rb");
     if (!f) return -1;
     int n = (int)fread(buf, 1, (size_t)cap, f);
@@ -211,7 +219,7 @@ int plat_load(const char *name, uint8_t *buf, int cap) {
 bool plat_backup(const char *name, const char *suffix, const uint8_t *buf, int len) {
     if (!g_fat || g_read_only || len <= 0) return false;
     char path[96];
-    snprintf(path, sizeof path, "/data/TerminalTanks/%s.%s", name, suffix);
+    snprintf(path, sizeof path, "%s/%s.%s", g_dir, name, suffix);
     FILE *f = fopen(path, "rb");
     if (f) { fclose(f); return true; }          /* the first backup is the one that matters */
     f = fopen(path, "wb");
@@ -244,7 +252,7 @@ bool plat_save(const char *name, const uint8_t *buf, int len) {
         else fseek(f, 0, SEEK_SET);
     }
     if (!f) f = fopen(path, "wb");               /* first write of this slot: allocate it once */
-    if (!f) return false;
+    if (!f) { plat_log("save: cannot open %s", path); return false; }
     bool ok = fwrite(g_slot, 1, SLOT_SIZE, f) == SLOT_SIZE;
     ok = fclose(f) == 0 && ok;
     if (!ok) return false;

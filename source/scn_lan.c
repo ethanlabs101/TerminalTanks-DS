@@ -185,6 +185,7 @@ static void host_start(LanHost *s) {
         wr_u8(&w, (uint8_t)nh);
         for (int i = 0; i < nh; i++) wr_player(&w, &humans[i]);
         net_send(M_START, buf, w.n);
+        net_set_match(true);
         session_init_mission(&g_sess, s->coop_mission, humans, nh, seed);
         g_sess.net = true;
         g_sess.my_owner = 0;
@@ -216,6 +217,7 @@ static void host_start(LanHost *s) {
     wr_u8(&w, 2);
     for (int i = 0; i < 2; i++) wr_player(&w, &players[i]);
     net_send(M_START, buf, w.n);
+    net_set_match(true);
     session_init_match(&g_sess, players, 2, MODE_LAN, g_app.settings.difficulty, rules_target(r), label, r->ammo_fx, r->special, r->pick_maps,
                        bless, r->map, seed);
     g_sess.my_owner = 0;
@@ -345,6 +347,7 @@ static void join_enter(Scene *sc) { (void)sc; net_scan_start(); }
 static void join_exit(Scene *sc) { (void)sc; }
 static void join_begin(LanJoin *s, NetMsg *m) {
     (void)s;
+    net_set_match(true);                          /* from here on a dropped link is re-joined, not ended */
     Rd r = {m->data, m->len, 0, false};
     int kind = rd_u8(&r);
     if (kind == 1) {

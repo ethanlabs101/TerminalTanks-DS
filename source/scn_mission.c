@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "director.h"
 #include "scenes.h"
 #include "ui.h"
 #include "render.h"
@@ -414,5 +415,5 @@ static void misr_draw(Scene *sc, Term *t) {
         }
     }
 }
-static const SceneVT MISR_VT = {.enter = misr_enter, .exit = misr_exit, .handle = misr_handle, .update = misr_update, .draw = misr_draw};
+static const SceneVT MISR_VT = {.enter = misr_enter, .exit = misr_exit, .handle = misr_handle, .update = misr_update, .draw = misr_draw, .music = music_result};
 Scene *scene_mission_result(void) { return &NEW(MisRes, &MISR_VT)->base; }

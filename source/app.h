@@ -31,7 +31,10 @@ typedef struct {
     void (*draw_px)(Scene *, Surf *top, Surf *bot);   /* optional: pixel layer drawn UNDER transparent cells */
     void (*draw_over)(Scene *, Surf *top, Surf *bot); /* optional: pixel overlay drawn over the cells */
     void (*destroy)(Scene *);
+    int (*music)(Scene *, int *mood);                 /* optional: the song for this scene (MOOD_*), -1 = no opinion */
+    unsigned char sound_kind;                         /* SK_*: how menu input sounds */
 } SceneVT;
+enum { SK_MENU = 0, SK_BATTLE, SK_SILENT, SK_JUKEBOX };
 struct Scene {
     const SceneVT *vt;
     bool overlay, ambient, show_wallet, home;
@@ -72,6 +75,7 @@ typedef struct {
     ProfileBook profiles;
     Backdrop *backdrop;  /* ambient */
     bool save_dirty;
+    float save_fail_t;   /* > 0: a save could not be written; a warning is showing */
 } App;
 extern App g_app;
 

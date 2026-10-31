@@ -59,7 +59,7 @@ void settings_default(Settings *s) {
     s->particle_density = 1.0;
     s->aim_guide = 1;
     s->random_maps = false;
-    s->sound = false;
+    s->sound = 0;
     s->wind = 6.0;
     s->home_mode = HOME_CLASSIC;
 }
@@ -587,10 +587,27 @@ int save_serialize(const SaveData *s, uint8_t *buf, int cap) {
         wu8(&w, c->turret); wu8(&w, c->hull); wu8(&w, c->track); wu8(&w, c->barrel); wu8(&w, c->glow); wu8(&w, c->accent);
         wu64(&w, c->ambient); wu8(&w, c->hover);
     }
+    /* 2.0 sound block, appended: earlier builds stop reading before it, and saves without it read as empty */
+    wu8(&w, 'J'); wu8(&w, s->song_popup_off ? 1 : 0); wu8(&w, (uint8_t)sizeof s->heard);
+    wbytes(&w, s->heard, sizeof s->heard);
     if (!w.ok) return -1;
     uint32_t h = checksum(buf, w.n);
     wu32(&w, h);
     return w.ok ? w.n : -1;
+}
+
+void settings_audio(const Settings *s, int *mode, int *mv, int *sv) {
+    int v = s->sound;
+    *mode = SND_ON; *mv = 10; *sv = 10;
+    if (v >= 2 && v <= 122) { *mv = (v - 2) / 11; *sv = (v - 2) % 11; }
+    else if (v >= 123 && v <= 243) { *mode = SND_OFF; *mv = (v - 123) / 11; *sv = (v - 123) % 11; }
+    else if (v == 244) *mode = SND_BEEP;
+}
+
+void settings_set_audio(Settings *s, int mode, int mv, int sv) {
+    mv = mv < 0 ? 0 : mv > 10 ? 10 : mv;
+    sv = sv < 0 ? 0 : sv > 10 ? 10 : sv;
+    s->sound = (uint8_t)(mode == SND_BEEP ? 244 : (mode == SND_OFF ? 123 : 2) + mv * 11 + sv);
 }
 
 bool save_deserialize(SaveData *s, const uint8_t *buf, int len) {
@@ -690,6 +707,15 @@ bool save_deserialize(SaveData *s, const uint8_t *buf, int len) {
                     if (nk >= 0) a |= 1ull << nk;
                 }
             c->ambient = a;
+        }
+    }
+    if (r.ok && r.pos + 3 <= r.n && r.b[r.pos] == 'J') {     /* the sound block (absent in older saves) */
+        r.pos++;
+        t.song_popup_off = ru8(&r) & 1;
+        int nh = ru8(&r);
+        for (int i = 0; i < nh && r.ok; i++) {
+            uint8_t v = (uint8_t)ru8(&r);
+            if (i < (int)sizeof t.heard) t.heard[i] = v;
         }
     }
     if (!r.ok) { snprintf(s->warning, sizeof s->warning, "save file truncated - starting fresh"); return false; }

@@ -25,6 +25,7 @@ LIBDIRS := $(BLOCKSDS)/libs/dswifi $(BLOCKSDS)/libs/libnds
 SPECS   := $(BLOCKSDS)/sys/crts/ds_arm9.specs
 
 BUILDDIR := build/arm9
+NITRODIR := nitrofiles
 ELF      := build/$(NAME).elf
 MAP      := build/$(NAME).map
 ROM      := $(NAME).nds
@@ -43,13 +44,20 @@ LDFLAGS  := $(ARCH) $(foreach p,$(LIBDIRS),-L$(p)/lib) -Wl,-Map,$(MAP) -Wl,--gc-
 
 THUMB_SRC := source/gen/font_data.c core/gen/content_data.c
 
-.PHONY: all clean host-tests selftest
+.PHONY: all clean host-tests selftest audio
+
 
 all: $(ROM)
 
-$(ROM): $(ELF) $(GAME_ICON)
+# The soundtrack and effects (rendered from reference/ by the PC game's own mixer; slow the first time, cached after)
+audio:
+	python3 tools/gen_audio.py
+$(NITRODIR)/audio/music.pak $(NITRODIR)/audio/sfx.pak:
+	@echo "missing $@: run 'make audio' first (renders the soundtrack, see tools/gen_audio.py)"; exit 1
+
+$(ROM): $(ELF) $(GAME_ICON) $(NITRODIR)/audio/music.pak $(NITRODIR)/audio/sfx.pak
 	@echo "  NDSTOOL $@"
-	@$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $(ELF) -b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUB);$(GAME_AUTHOR)" >/dev/null
+	@$(BLOCKSDS)/tools/ndstool/ndstool -c $@ -7 $(ARM7ELF) -9 $(ELF) -b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUB);$(GAME_AUTHOR)" -d $(NITRODIR) >/dev/null
 
 $(ELF): $(OBJS)
 	@echo "  LD      $@"

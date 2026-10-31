@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "director.h"
 #include "scenes.h"
 #include "ui.h"
 #include "preview.h"
@@ -299,7 +300,7 @@ static void ws_draw(Scene *sc, Term *t) {
 }
 
 static void ws_destroy(Scene *sc) { Workshop *s = (Workshop *)sc; preview_free(&s->stage); free(s); }
-static const SceneVT WS_VT = {.handle = ws_handle, .update = ws_update, .draw = ws_draw, .destroy = ws_destroy};
+static const SceneVT WS_VT = {.handle = ws_handle, .update = ws_update, .draw = ws_draw, .destroy = ws_destroy, .music = music_workshop};
 Scene *scene_workshop(void) {
     Workshop *s = (Workshop *)calloc(1, sizeof(Workshop));
     scene_base(&s->base, &WS_VT);
@@ -387,7 +388,7 @@ static void st_draw(Scene *sc, Term *t) {
                      45, P_MUTED, &P_PANEL, x, W, 3);
 }
 static void st_destroy(Scene *sc) { Studio *s = (Studio *)sc; preview_free(&s->stage); free(s); }
-static const SceneVT ST_VT = {.handle = st_handle, .update = st_update, .draw = st_draw, .destroy = st_destroy};
+static const SceneVT ST_VT = {.handle = st_handle, .update = st_update, .draw = st_draw, .destroy = st_destroy, .music = music_workshop};
 Scene *scene_studio_for(int design, int paint, NextFn back) {
     Studio *s = (Studio *)calloc(1, sizeof(Studio));
     scene_base(&s->base, &ST_VT);

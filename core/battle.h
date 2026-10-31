@@ -21,7 +21,12 @@ typedef struct { char text[48]; char sub[128]; RGB color; double life, age; bool
 typedef struct { double x, y, radius; RGB accent; double duration, age; uint8_t style; } Explosion;
 
 /* visual requests for the renderer's particle system (all effects use the renderer's own rng) */
-enum { FX_MUZZLE = 1, FX_TRAIL, FX_IMPACT, FX_DEBRIS, FX_SOUND };
+enum { FX_MUZZLE = 1, FX_TRAIL, FX_IMPACT, FX_DEBRIS, FX_SOUND, FX_SFX };
+/* FX_SFX: a sound effect, where the PC game's BattleScene calls app.sfx (a = BS_*, x = position for the pan, p = volume,
+ * q = rate, n = ammo). The battle never reads these back, so the simulation is the same with or without sound. */
+enum { BS_TURN_YOU = 0, BS_TURN_CPU, BS_WIND, BS_UFO_HOP, BS_UFO_VOLLEY, BS_FIRE, BS_BLESS_CHOIR, BS_SPECIAL_FIRE, BS_BLESS_STAR,
+       BS_BLESS_TICK, BS_BLESS_PILLAR, BS_BLESS_PILLAR_HIT, BS_BLESS_NUKE, BS_BLESS_FIREWALL, BS_HIT, BS_MOUND, BS_SHIELD, BS_TANK_HIT,
+       BS_DESTROY, BS_DEBRIS, BS_SPECIAL_CHARGE };
 typedef struct { uint8_t type; uint8_t ammo_boom, ammo_trail; uint8_t a; double x, y, p, q; RGB c0, c1; int n; } FxReq;
 
 typedef struct {
@@ -46,6 +51,7 @@ typedef struct {
     double T_SUN, T_BANG, first, gap, tel, T_CONV, T_END;
     double arrive[14], wipe_t[16];
     uint32_t fired;       /* bits: 0 bang, 1..14 hits, 15 finale, 16..31 wipes */
+    int ticks;            /* clock ticks sounded so far */
 } Blessing;
 
 typedef struct Battle Battle;

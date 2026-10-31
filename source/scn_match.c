@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "director.h"
 #include "scenes.h"
 #include "ui.h"
 #include "preview.h"
@@ -914,7 +915,7 @@ static void mres_draw(Scene *sc, Term *t) {
     if ((int)(g_app.time * 2) % 2 == 0) term_center(t, y + 15, "[ A ]", P_PRIMARY, &P_PANEL, x, 46);
     hot_add(x, y, 46, 17, 1);
 }
-static const SceneVT MRES_VT = {.enter = mres_enter, .exit = mres_exit, .handle = mres_handle, .update = backdrop_scene_update, .draw = mres_draw};
+static const SceneVT MRES_VT = {.enter = mres_enter, .exit = mres_exit, .handle = mres_handle, .update = backdrop_scene_update, .draw = mres_draw, .music = music_result};
 Scene *scene_match_result(void) { return &NEW(MatchRes, &MRES_VT)->base; }
 
 /* ================================================================== RPSScene (l.9901) */
@@ -925,6 +926,7 @@ typedef struct {
     int seat;               /* -1 local */
     int picks[2];
     int stage, turn, sel, winner, choice;
+    int snd_beat;
     float t;
     char note[32];
     char names[2][16];
@@ -963,6 +965,14 @@ static void rps_update(Scene *sc, float dt) {
             return;
         }
     }
+    if (s->stage == RPS_COUNT) {                     /* the shake on each beat, the reveal on the last */
+        int beat = (int)(s->t / 0.6f);
+        if (beat > 3) beat = 3;
+        if (beat + 1 != s->snd_beat) {
+            s->snd_beat = beat + 1;
+            sfx_play(beat < 3 ? SFX_RPS_SHAKE : SFX_RPS_REVEAL, 0.9f, 0, 1, 0);
+        }
+    } else s->snd_beat = 0;
     if (s->stage == RPS_COUNT && s->t > 2.3f) { s->stage = RPS_REVEAL; s->t = 0; }
     else if (s->stage == RPS_REVEAL && s->t > 2.0f) {
         if (s->winner < 0) {

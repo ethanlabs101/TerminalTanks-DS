@@ -61,6 +61,8 @@ python3 tests/harness/tour.py build/tour.script && build/host/harness run termin
 python3 tests/harness/battle_sp.py build/sp.script && build/host/harness run terminaltanks.nds build/sp.script build/sp
 python3 tests/harness/flows.py build/fl.script && build/host/harness run terminaltanks.nds build/fl.script build/fl
 python3 tests/harness/run_lan_versus.py build/lan 30          # two consoles, pass/fail
+HARNESS_BLACKOUT=5000:7000 python3 tests/harness/run_lan_versus.py build/lan_b 30   # ... out of range for 33 s
+python3 tests/harness/save_persist.py build/savetest         # saves survive a reboot
 ```
 
 | Test | What it shows | Checked by |
@@ -69,7 +71,8 @@ python3 tests/harness/run_lan_versus.py build/lan 30          # two consoles, pa
 | `battle_sp.py` | a single-player match vs. CPU: 14 turns, firing, AI turns, round result; `perf` lines in the log | screenshots + perf log |
 | `flows.py` | tournament level 1: roadmap → loadout → whisper → battle vs. the boss, AI turns, pause menu | screenshots, inspected |
 | `run_lan_versus.py` | **two consoles over emulated local wireless**: host advertises, guest scans and finds it, joins, version handshake, rules shown to the guest, start, rock-paper-scissors across the link, then alternating turns; 28 shots over 2 rounds (round end + new map) | automatic: both consoles must log the same sequence of (phase, turn, hash of terrain + HP), and every shot one side sends must arrive intact on the other — **PASS** |
-| save persistence | cheat entered with an emulated SD card, emulator restarted on the same card image: the profile file `PROFILE1.SAV` exists and the unlocks are still there | manual run of `harness run … sd.img` |
+| `save_persist.py` | a setting changed on an emulated SD card, the emulator restarted on the same card: the change is still there; a fresh card shows the default (negative control). Added after the 2.0 sound ROM stopped saving (NitroFS had made the ROM the current drive); it fails on that ROM and passes now | automatic — **PASS** |
+| `run_lan_versus.py` with faults | the same two-console match with `HARNESS_DROP=20` (a fifth of all wireless frames lost at random), `HARNESS_BLACKOUT=5000:5600` (10 s with no radio at all) and `HARNESS_BLACKOUT=5000:7000` (33 s: the guest gives up on the old association after 20 s, scans for the host, re-joins, and both resume the stream) | automatic, same checks — results in PROGRESS.md |
 
 Home screens and battle maps (after the first hardware test reported slow Master/Eternal screens and a laggy
 Astral Rift map): cycling through all 91 home screens, every screen averages 18–37 ms a frame and every SELECT
@@ -93,4 +96,8 @@ second. 30 fps is held in normal play in the emulator.
   end to end in the emulator.
 * Disconnect handling over LAN (quit / power off mid-match) — implemented (6 s silence or lost association →
   "CONNECTION LOST"), not exercised by a test.
-* Sound beyond "it doesn't crash" (the emulator run is silent).
+* Sound on real hardware. In the emulator (NooDS, with its sound output captured to a file) the music was checked
+  against the expected song: 143 s of the title song matched it continuously (normalized correlation 0.99+ for every
+  half second) across its loop point; a menu-to-battle switch went from the home song to the battlefield's song;
+  the menu clicks, turn chime, shot and impact sounds were identified in the battle capture; MUSIC VOLUME 50%
+  halved the level and AUDIO OFF silenced it. Reading the 240 MB ROM from a real flashcart's SD card was not tested.

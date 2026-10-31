@@ -29,7 +29,9 @@ If you already have an official BlocksDS install, it should also work: point `BL
 ```sh
 export WONDERFUL_TOOLCHAIN=/opt/wonderful
 export BLOCKSDS=$HOME/deps/blocksds
-make -j8                        # -> terminaltanks.nds  (≈ 0.8 MB)
+make audio                      # once: renders the soundtrack + effects into nitrofiles/audio (needs Python 3 with
+                                #   numpy and scipy; ~15 min on 2 cores the first time, cached in build/audio_cache)
+make -j8                        # -> terminaltanks.nds  (≈ 240 MB: almost all of it is the music)
 make clean
 ```
 
@@ -40,7 +42,7 @@ Notes on the build (all in `Makefile`):
 * `-ffp-contract=off` keeps floating-point results identical to the host build used by the parity tests.
 * ARM7 binary: BlocksDS's prebuilt `arm7_dswifi.elf` (wireless + sound + touch). ARM9 links
   `-ldswifi9_noip -lnds9 -lc -lgcc -lm` (dswifi without the IP stack: local multiplayer only).
-* The banner (icon `assets/icon.bmp`, title "Terminal Tanks DS / v1.5.0 port / ethanlabs101") is added by ndstool.
+* The banner (icon `assets/icon.bmp`, title "Terminal Tanks DS / v2.0 port / ethanlabs101") is added by ndstool.
 * `TT_VERSION` is `git describe` of this repo.
 
 Reproducibility: with the pinned toolchain the ROM depends only on the repository contents (and the git
@@ -48,7 +50,7 @@ description string baked into it).
 
 ## 3. Generated sources (only when the Python original or the font changes)
 
-Both are committed, so a normal build does not need Python:
+Both are committed, so a normal build does not need Python (the audio packs are the exception, see above):
 
 ```sh
 python3 tools/gen_content.py    # reference/terminaltanks.py -> core/gen/content_data.c, content_enums.h

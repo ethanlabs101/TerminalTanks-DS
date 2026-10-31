@@ -25,18 +25,37 @@ dswifi's multiplayer mode gives the host a **CMD** frame it sends to clients and
 back, once per exchange. Both are unreliable. On top of them `netplay.c` builds a tiny go-back-N stream:
 
 ```
-packet (100 bytes) = magic 0x5454 | proto | n | off (u32) | ack (u32) | data[88]
+packet (100 bytes) = magic 0x5454 | proto 2 | n | off (u32) | ack (u32) | session id (u16) | pad | data[84]
 ```
 
-* Every frame (30 Hz) each side sends a packet carrying the oldest unacknowledged bytes of its outgoing stream
+* Once per frame each side sends a packet carrying the oldest unacknowledged bytes of its outgoing stream
   (`off` = stream offset of `data[0]`, `n` bytes) and `ack` = how many bytes of the peer's stream it has received
   in order. Lost or duplicated packets are harmless: data is resent until acknowledged, and only bytes at the
   next expected offset are delivered.
 * The stream carries messages framed as `[type u8][len u16][payload]`, max 400 bytes; the receiver keeps an
   inbox with the original's semantics (`peek` the oldest of a set of types, `take`, `drop`).
-* Bandwidth: 88 bytes × 30 Hz ≈ 2.6 KB/s each way, far more than the game needs (an aim update is 20 bytes).
-* Link loss: no packet for 6 s, or the host losing its associated client, marks the link dead; the screens show
-  "CONNECTION LOST" / "OPPONENT LEFT" and return to the menu, like the original's `NetLink` closing.
+* Bandwidth: 84 bytes × 30 Hz ≈ 2.5 KB/s each way, far more than the game needs (an aim update is 20 bytes).
+
+## Staying connected
+
+Earlier builds ended the match after 6 s without a packet, and could lose messages in two ways (a full inbox
+dropped new messages, and pausing stopped the link from being pumped). Protocol 2 removes all three:
+
+* **Pumped every frame by the app** (`net_frame`), whatever screen is up, so the pause menu or a slow screen never
+  starves the link. Scenes may also pump; at most one packet goes out per frame.
+* **Nothing is dropped.** When the inbox is full the receiver stops acknowledging and the sender resends later.
+  Aim echoes for the same tank are merged in the inbox (only the newest matters) and are not queued while the
+  link is in trouble or the backlog is large, so they can never crowd out a shot, a skip or a READY.
+* **Silence is not a disconnect.** After 3 s without a packet a banner says *WAITING FOR THE OTHER DS*; the stream
+  continues from where it was when packets flow again.
+* **Automatic re-join.** Once a match has started, a lost association (out of range, a wireless reset) is repaired:
+  the guest scans for the same host (by its MAC address) and joins again, the host accepts it back, and both
+  resume the stream from the last acknowledged byte, so no message is lost or doubled. The guest also re-joins on
+  its own after 20 s of silence. A session id in every packet keeps any other console out (the host kicks it).
+  The banner shows *LINK LOST - RECONNECTING* with a countdown; only after 90 s of trouble (or the other player
+  quitting) does the match end with *CONNECTION LOST*. Both consoles keep simulating the same battle meanwhile:
+  the one waiting for the other's shot just waits.
+* In the lobby (before START) the old rule stays: a guest that disappears for 6 s is dropped and hosting restarts.
 
 ## Messages (the original's set)
 
@@ -71,5 +90,9 @@ discovery, join, handshake, RPS, then 30 turn cycles (~30 shots over 2 rounds, i
 round on a new map). Both consoles log every phase change with a hash of terrain + HP; the test requires the two
 logs to be identical and every sent shot to arrive intact. **Result: PASS.**
 
-Not tested: real hardware radio conditions, disconnects mid-match, co-op missions over LAN (implemented: the host
-sends `START` with a mission id and both run `session_init_mission`).
+The same scenario also runs with faults injected into melonDS's wireless (`HARNESS_DROP=<percent>` loses frames at
+random, `HARNESS_BLACKOUT=<f0>:<f1>` loses everything for a stretch, like walking out of range); see TESTING.md for
+the results.
+
+Not tested: real hardware radio conditions, co-op missions over LAN (implemented: the host sends `START` with a
+mission id and both run `session_init_mission`).

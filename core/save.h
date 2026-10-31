@@ -42,10 +42,16 @@ typedef struct {
     double particle_density;
     int aim_guide;
     bool random_maps;
-    bool sound;
+    uint8_t sound;        /* audio mode + volumes in one byte (settings_audio); 0/1 = what DS 1.5 stored */
     double wind;
     int home_mode;        /* index into HOME_ORDER */
 } Settings;
+
+/* The sound byte keeps the save layout unchanged: 0 and 1 (DS 1.5's OFF/BEEP, and every new save) mean music and
+ * effects ON at full volume, 2..122 = ON with volumes, 123..243 = OFF (volumes remembered), 244 = BEEP only. */
+enum { SND_OFF = 0, SND_BEEP = 1, SND_ON = 2 };
+void settings_audio(const Settings *s, int *mode, int *music_vol, int *sfx_vol);
+void settings_set_audio(Settings *s, int mode, int music_vol, int sfx_vol);
 
 typedef struct {
     int16_t tank;         /* runtime design index */
@@ -83,6 +89,8 @@ typedef struct {
     Rules rules[3];                     /* single, two, lan */
     CustomTank custom[CUSTOM_TANK_MAX];
     char warning[48];
+    uint8_t heard[64];    /* songs played at least once (Jukebox), by song index; stored after everything else */
+    bool song_popup_off;  /* Settings > SONG POPUP OFF */
     /* derived */
     uint8_t earned[(N_UIDS + 7) / 8];
 } SaveData;

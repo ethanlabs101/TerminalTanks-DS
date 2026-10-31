@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "render.h"
 #include "netplay.h"
+#include "director.h"
 
 static const RGB GOLD = {255, 206, 100};
 static inline float clampf(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }
@@ -93,8 +94,10 @@ static void bs_exit(Scene *sc) {
 }
 
 static void drain_fx(BattleScn *s, float dt) {
-    for (int i = 0; i < s->b.nfxq; i++)
+    for (int i = 0; i < s->b.nfxq; i++) {
         if (s->b.fxq[i].type == FX_SOUND) app_feedback(s->b.fxq[i].a == 2 ? 1 : 0);
+        else if (s->b.fxq[i].type == FX_SFX) director_battle_fx(&s->b.fxq[i], s->b.w.width);
+    }
     field_update(&s->fv, &s->b, dt);
     s->b.nfxq = 0;
 }
@@ -760,10 +763,15 @@ static void bs_px_full(Scene *sc, Surf *top, Surf *bot) {
 }
 
 static void bs_destroy(Scene *sc) { free(sc); }
+static int bs_music(Scene *sc, int *mood) { (void)sc; *mood = MOOD_BATTLE; return session_song(); }
+bool battle_scene_local_aiming(Scene *sc) {
+    BattleScn *s = (BattleScn *)sc;
+    return s->b.phase == PH_AIMING && battle_control(&s->b, battle_current(&s->b)) == CTL_LOCAL;
+}
 
 static const SceneVT BATTLE_VT = {.enter = bs_enter, .exit = bs_exit, .handle = bs_handle, .update = bs_update,
                                   .update_ambient = bs_update_amb, .draw = bs_draw, .draw_px = bs_px_full,
-                                  .draw_over = bs_over, .destroy = bs_destroy};
+                                  .draw_over = bs_over, .destroy = bs_destroy, .music = bs_music, .sound_kind = SK_BATTLE};
 
 static BattleScn *battle_alloc(void) {
     BattleScn *s = (BattleScn *)calloc(1, sizeof(BattleScn));
@@ -934,13 +942,25 @@ static void rr_draw(Scene *sc, Term *t) {
     else if ((int)(g_app.time * 2) % 2 == 0) term_center(t, y + 10, "[ A ]", P_PRIMARY, &P_PANEL, x, 49);
     hot_add(x, y, 49, 13, 1);
 }
-static const SceneVT RR_VT = {.handle = rr_handle, .update = rr_update, .draw = rr_draw};
+static const SceneVT RR_VT = {.handle = rr_handle, .update = rr_update, .draw = rr_draw, .music = music_result};
 Scene *scene_round_result(Scene *battle) {
     RoundRes *r = (RoundRes *)calloc(1, sizeof(RoundRes));
     scene_base(&r->base, &RR_VT);
     r->base.overlay = true;
     r->battle = battle;
     r->loser = battle_scene_doomed_team(battle);
+    {   /* RoundResultScene: the round / match jingle, from the local player's side */
+        BattleScn *bs = (BattleScn *)battle;
+        int won = 1 - r->loser, mine = 0, nmine = 0;
+        for (int i = 0; i < bs->b.w.ntanks; i++)
+            if (battle_control(&bs->b, &bs->b.w.tanks[i]) == CTL_LOCAL) {
+                int bit = 1 << bs->b.w.tanks[i].team;
+                if (!(mine & bit)) { mine |= bit; nmine++; }
+            }
+        bool good = nmine != 1 || (mine & (1 << won));
+        bool over = session_over(&g_sess);
+        sfx_play(over ? (good ? SFX_MATCH_WIN : SFX_MATCH_LOSE) : (good ? SFX_ROUND_WIN : SFX_ROUND_LOSE), 1.0f, 0, 1, 0);
+    }
     return &r->base;
 }
 

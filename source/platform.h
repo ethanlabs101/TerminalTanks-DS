@@ -7,6 +7,8 @@
 
 void plat_init(void);
 void plat_init_storage(bool read_only);   /* FAT; read_only: never write (safe start) */
+bool plat_storage_writable(void);        /* an SD card is there and this is not a safe start */
+const char *plat_data_dir(void);         /* "/data/TerminalTanks" on the card */
 void plat_show_now(void);                 /* copy the back buffers to the screens immediately */
 uint32_t plat_keys_now(void);             /* BTN_* held right now (boot key checks) */
 Surf *plat_top(void);          /* top screen back buffer */

@@ -15,6 +15,7 @@ Scene *scene_menu(void);
 Scene *scene_notice(const char *title, const char *text);
 Scene *scene_howto(void);
 Scene *scene_settings(void);
+Scene *scene_jukebox(void);
 Scene *scene_links(void);
 Scene *scene_cheats(void);
 Scene *scene_profiles(void);

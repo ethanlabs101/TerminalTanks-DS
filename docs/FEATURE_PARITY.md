@@ -62,7 +62,13 @@ nothing is verified on hardware (see `TESTING.md`).
 **System**
 9. *QUIT* saves and returns to the title screen (a DS program has nowhere to quit to).
 10. *Links* screen: the DS has no web browser, so choosing a link shows the address to type elsewhere.
-11. *Sound*: the original's optional terminal bell is a short PSG beep (setting SOUND OFF/BEEP).
+11. *Sound*: the PC game's soundtrack (all 277 songs) and every sound effect (named effects plus each ammo's own
+    launch and blast), rendered ahead of time by the PC game's own mixer (`tools/gen_audio.py`) because the DS cannot
+    synthesize them live. Differences: mono at 16.5 kHz (IMA-ADPCM); the PC's per-instrument mood mix (drums softer
+    in story/result screens) becomes a lower music volume; songs change with a short fade instead of a crossfade.
+    AUDIO ON / BEEP ONLY / OFF, MUSIC VOLUME, SFX VOLUME and SONG POPUP (the NOW PLAYING card) are in Settings.
+    The JUKEBOX is in the main menu (same groups, unlock rules and analyser as the PC; the PC's 3-band EQ is not on
+    the DS). Heard songs are kept in a small block appended to the save, which earlier builds simply ignore.
 12. *Saves*: same fields as the original's JSON save, stored as a compact versioned binary per profile on the SD
     card. PC save files cannot be imported, so the original's v1–v3 save migrations are not needed.
 13. *LAN* uses DS local wireless instead of TCP/UDP; same messages and semantics (`MULTIPLAYER.md`).

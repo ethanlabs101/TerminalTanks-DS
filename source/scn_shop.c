@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "director.h"
 #include "scenes.h"
 #include "ui.h"
 #include "preview.h"
@@ -447,7 +448,7 @@ static void shop_destroy(Scene *sc) {
     canvas_free(&s->cv);
     free(s);
 }
-static const SceneVT SHOP_VT = {.handle = shop_handle, .update = shop_update, .draw = shop_draw, .destroy = shop_destroy};
+static const SceneVT SHOP_VT = {.handle = shop_handle, .update = shop_update, .draw = shop_draw, .destroy = shop_destroy, .music = music_shop};
 Scene *scene_shop(int page) {
     Shop *s = (Shop *)calloc(1, sizeof(Shop));
     scene_base(&s->base, &SHOP_VT);

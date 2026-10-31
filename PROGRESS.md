@@ -25,8 +25,23 @@ Done (all committed):
 - STEP 1 DONE (2026-10-30, ROM md5 9e94e401...): all tests pass (parity 300/300, 24/24, 6/6, new 10/10; save migration
   200/200). Handed to the user for a hardware test.
 
+- STEP 3 (sound, done before step 2 at the user's request): the PC soundtrack and every effect, rendered by the PC
+  game's own mixer (tools/gen_audio.py -> nitrofiles/audio, ~240 MB) and played by source/audio.c (music: ADPCM
+  stream decoded in the VBlank IRQ into a looping PCM ring on channel 0, synced to timers 0+1; effects: hardware
+  ADPCM on channels 1-11 from a 256 KB cache). Director (source/director.c) mirrors app._direct_music, _ui_sound,
+  the wallet chimes and every BattleScene sfx call (the core reports them as FX_SFX; parity unchanged: 300/300,
+  24/24, 6/6, new 10/10; save migration 200/200). Settings: AUDIO ON/BEEP ONLY/OFF + MUSIC/SFX VOLUME, packed in
+  the existing settings byte (no save-format change; old 0/1 values mean ON). Checked in NooDS with a sound capture.
+
+- Saves fixed (the sound ROM's NitroFS made the ROM the current drive; tests/harness/save_persist.py) and STEP 2
+  (wireless) done: link pumped every frame by the app, no message ever dropped (inbox backpressure, aim merging),
+  waiting banner instead of a 6 s cut-off, automatic re-join + stream resume after a lost association, session id
+  per packet. melonDS two-console match PASS with no faults, 20% random loss, a 10 s and a 33 s blackout.
+
+- Jukebox (main menu), NOW PLAYING popup + SONG POPUP setting, setting descriptions wrap instead of overflowing.
+
 Next:
-1. User hardware test of step 1: save migration on their real card (backup first), new content, home screens,
+1. User hardware test of step 1 + sound: save migration on their real card (backup first), new content, home screens,
    the NooDS-only stretched frame during PARADOX shots, LINKS screen layout (not captured in the emulator).
 2. Step 2: wireless reconnect/resync + stress tests (melonDS two-console harness in tools/harness: needs building).
 3. Step 3: music on the DS. Step 4: polish + 2.0 release (DS repo, website DS page, itch).

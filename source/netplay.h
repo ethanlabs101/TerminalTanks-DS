@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "../core/battle.h"
 
-#define NET_PROTO 1
+#define NET_PROTO 2                     /* 2: session id in every packet, reconnecting links */
 #define NET_GAME_ID 0x0054544Bu         /* 'TTK' */
 #define NET_MAX_MSG 400
 
@@ -32,7 +32,10 @@ bool net_join(int idx);
 void net_close(void);                       /* back to idle (sends nothing) */
 void net_leave(void);                       /* polite: "quit", flush briefly, close */
 
-void net_pump(void);                        /* call once per frame while a link is up */
+void net_pump(void);                        /* receive + send (at most one packet per frame); scenes may call it */
+void net_frame(void);                       /* the app calls this every frame: the link never starves */
+void net_set_match(bool on);                /* a match has started: from now on a lost link is re-joined */
+const char *net_trouble_text(void);         /* NULL, or the banner to show while the link is being repaired */
 bool net_dead(void);
 bool net_send(int type, const void *payload, int len);
 NetMsg *net_peek(uint32_t type_mask);       /* oldest message of any type in the mask (bit = 1 << type) */

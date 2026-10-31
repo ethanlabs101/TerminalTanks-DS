@@ -11,9 +11,10 @@ import os, re, subprocess, sys
 
 out = sys.argv[1] if len(sys.argv) > 1 else "build/lan"
 os.makedirs(out, exist_ok=True)
-subprocess.run([sys.executable, "tests/harness/lan_versus.py", out, sys.argv[2] if len(sys.argv) > 2 else "10"], check=True, stdout=subprocess.DEVNULL)
-subprocess.run(["build/host/harness", "mp", "terminaltanks.nds", f"{out}/host.script", f"{out}/guest.script", out],
-               check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1800)
+if os.environ.get("CHECK_ONLY") != "1":           # CHECK_ONLY=1: just evaluate the logs of an earlier run
+    subprocess.run([sys.executable, "tests/harness/lan_versus.py", out, sys.argv[2] if len(sys.argv) > 2 else "10"], check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(["build/host/harness", "mp", os.environ.get("ROM", "terminaltanks.nds"), f"{out}/host.script", f"{out}/guest.script", out],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3000)
 
 def events(path):
     phases, sent, recv = [], [], []

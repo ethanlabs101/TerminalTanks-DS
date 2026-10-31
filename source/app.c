@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "app.h"
+#include "director.h"
+#include "netplay.h"
 #include "scenes.h"
 #include "ui.h"
 
@@ -142,7 +144,10 @@ void app_flush(void) {
     char f[32];
     profile_file(g_app.profiles.active, f, sizeof f);
     int n = save_serialize(&g_app.save, g_iobuf, sizeof g_iobuf);
-    if (n > 0) plat_save(f, g_iobuf, n);
+    if (n > 0 && !plat_save(f, g_iobuf, n) && plat_storage_writable()) {
+        g_app.save_fail_t = 5.0f;              /* say so instead of losing progress silently */
+        plat_log("SAVE FAILED: %s", f);
+    }
 }
 
 static void load_active(void) {
@@ -223,7 +228,7 @@ void app_delete_profile(int idx) {
     bool was_active = idx == b->active;
     char f[32], path[64];
     profile_file(idx, f, sizeof f);
-    snprintf(path, sizeof path, "/data/TerminalTanks/%s", f);
+    snprintf(path, sizeof path, "%s/%s", plat_data_dir(), f);
     for (int i = idx; i < b->n - 1; i++) b->p[i] = b->p[i + 1];
     b->n--;
     if (was_active) b->active = 0;
@@ -242,7 +247,9 @@ int app_home_theme(void) {
 void app_feedback(int kind) {
     (void)kind;
     static double last = -1;
-    if (g_app.settings.sound && g_app.time - last > 0.15) {
+    int mode, mv, sv;
+    settings_audio(&g_app.settings, &mode, &mv, &sv);
+    if (mode == SND_BEEP && g_app.time - last > 0.15) {
         last = g_app.time;
         plat_beep(kind == 1 ? 2 : 1);
     }
@@ -305,9 +312,12 @@ void app_step(float dt) {
     } else {
         for (int i = 0; i < nev && !g_app.tr_phase; i++) {
             Scene *top = app_top();
+            director_ui_sound(top, &evs[i]);
             if (top && top->vt->handle) top->vt->handle(top, &evs[i]);
         }
     }
+    director_frame(dt);
+    net_frame();                                   /* the wireless link is kept alive whatever screen is up */
     uint32_t q1 = plat_lines();
     g_nhot = 0;
     term_clear(&g_term, P_BG);
@@ -329,6 +339,19 @@ void app_step(float dt) {
             g_app.wallet_flash = g_app.wallet_flash - dt > 0 ? g_app.wallet_flash - dt : 0;
             ui_wallet(&g_term, &g_app.save, g_app.wallet_flash);
         }
+    }
+    director_draw_popup(&g_term);
+    const char *nt = net_trouble_text();
+    if (nt) {                                      /* the link is being repaired: say so on top of whatever is showing */
+        RGB bg = {40, 30, 6};
+        term_fill(&g_term, 0, T_SPLIT - 1, T_COLS, 1, bg);
+        term_center(&g_term, T_SPLIT - 1, nt, P_AMBER, &bg, 0, T_COLS);
+    }
+    if (g_app.save_fail_t > 0) {
+        g_app.save_fail_t -= dt;
+        RGB bg = {60, 10, 10};
+        term_fill(&g_term, 0, T_SPLIT, T_COLS, 1, bg);
+        term_center(&g_term, T_SPLIT, "COULD NOT SAVE - CHECK THE SD CARD", P_AMBER, &bg, 0, T_COLS);
     }
     /* render: pixel layers, cells, overlays */
     Surf *ts = plat_top(), *bs = plat_bottom();
@@ -390,6 +413,8 @@ void app_init(void) {
     boot_status(safe ? "SAFE START" : "READING SD CARD...", safe ? "saves will not be loaded or written this session" : NULL);
     plat_init_storage(safe);
     rng_seed(&g_app.rng, plat_entropy());
+    boot_status("LOADING SOUND...", NULL);
+    audio_init();
     if (!safe) {
         boot_status("LOADING PROFILE...", NULL);
         profiles_read();
