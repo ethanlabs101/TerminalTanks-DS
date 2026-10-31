@@ -60,8 +60,6 @@ on the card. Controls: d-pad aims (← → angle, ↑ ↓ power), **A** fires, h
 Game design, content and original code: ethanlabs101 (Terminal Tanks). DS port: this repository.
 Font: Spleen 5x8 by Frederic Cambus (BSD-2-Clause). Built with BlocksDS (libnds, dswifi), tested with melonDS.
 
----
-
 ## Thank You!!
 
 ***Genuinely thank you for viewing/using this software.***
