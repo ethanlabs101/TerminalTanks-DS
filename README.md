@@ -15,6 +15,8 @@ kept, unmodified, in `reference/` and is the source of truth for every rule, tab
 
 > Screenshots are recorded from v1.5.0
 
+## Repo Directories
+
 ```
 terminaltanks.nds      the ROM (build it with `make`, see docs/BUILDING.md)
 core/                  portable game simulation (C11, no DS code) – bit-exact with the Python original
