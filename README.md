@@ -4,7 +4,7 @@ A native Nintendo DS port of **Terminal Tanks v2.0.1** (by ethanlabs101): the tu
 rewritten in C for the DS with the BlocksDS SDK. The original game (`terminaltanks.py` and its `tanks/` package) is
 kept, unmodified, in `reference/` and is the source of truth for every rule, table and number.
 
-***Compile yourself or download the compiled .nds game in the [Release]() page.***
+***Compile yourself or download the compiled .nds game in the [Release](https://github.com/ethanlabs101/TerminalTanks-DS/releases/tag/v2.0.1) page.***
 
 ***Thanks for playing :)***
 
